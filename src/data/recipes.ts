@@ -66,6 +66,8 @@ export function useRecipes() {
 export function useRecipe(id: string) {
   return useQuery({
     queryKey: queryKeys.recipe(id),
+    // The editor calls this with an empty id when writing a new recipe.
+    enabled: id.length > 0,
     queryFn: async (): Promise<RecipeWithIngredients> => {
       const { data, error } = await supabase
         .from('recipes')

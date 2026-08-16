@@ -25,12 +25,23 @@ export function IngredientPicker({
   label = 'Type',
   placeholder = 'Choose an ingredient',
   allowClear = true,
+  freeText = null,
+  onFreeText,
 }: {
   value: string | null;
   onChange: (id: string | null) => void;
   label?: string;
   placeholder?: string;
   allowClear?: boolean;
+  /** Current free-text fallback, shown when no canonical ingredient is set. */
+  freeText?: string | null;
+  /**
+   * When provided, the search sheet offers "use what I typed" for terms with no
+   * match. Recipes need this escape hatch — a homemade cordial has no entry in
+   * the vocabulary — but a bottle does not, so the picker only grows the option
+   * where it is wanted.
+   */
+  onFreeText?: (text: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const { index } = useIngredientIndex();
@@ -53,14 +64,23 @@ export function IngredientPicker({
             <Body>{selected.name}</Body>
             <Muted>· {labelForKind(selected.kind)}</Muted>
           </View>
+        ) : freeText ? (
+          <View style={styles.selected}>
+            <View style={[styles.dot, { backgroundColor: colors.textFaint }]} />
+            <Body>{freeText}</Body>
+            <Muted>· as written</Muted>
+          </View>
         ) : (
           <Muted>{placeholder}</Muted>
         )}
 
         <View style={styles.controlActions}>
-          {selected && allowClear ? (
+          {(selected || freeText) && allowClear ? (
             <Pressable
-              onPress={() => onChange(null)}
+              onPress={() => {
+                onChange(null);
+                onFreeText?.('');
+              }}
               hitSlop={10}
               accessibilityLabel="Clear ingredient"
             >
@@ -76,8 +96,18 @@ export function IngredientPicker({
         onClose={() => setOpen(false)}
         onSelect={(ingredient) => {
           onChange(ingredient.id);
+          onFreeText?.('');
           setOpen(false);
         }}
+        onFreeText={
+          onFreeText
+            ? (text) => {
+                onChange(null);
+                onFreeText(text);
+                setOpen(false);
+              }
+            : undefined
+        }
       />
     </View>
   );
@@ -87,10 +117,12 @@ function IngredientSearchModal({
   visible,
   onClose,
   onSelect,
+  onFreeText,
 }: {
   visible: boolean;
   onClose: () => void;
   onSelect: (ingredient: Ingredient) => void;
+  onFreeText?: (text: string) => void;
 }) {
   const [term, setTerm] = useState('');
   const { data: all } = useIngredients();
@@ -170,10 +202,29 @@ function IngredientSearchModal({
           keyExtractor={(item) => `${item.type}:${item.key}`}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.modalList}
+          ListHeaderComponent={
+            // Offered above the results, not only when empty: the right answer
+            // for "my own grapefruit cordial" is free text even though
+            // "grapefruit juice" matches.
+            onFreeText && term.trim() ? (
+              <Pressable
+                onPress={() => onFreeText(term.trim())}
+                style={({ pressed }) => [styles.result, pressed && styles.resultPressed]}
+              >
+                <MaterialCommunityIcons name="pencil-outline" size={16} color={colors.textFaint} />
+                <View style={styles.resultText}>
+                  <Body>Use “{term.trim()}” as written</Body>
+                  <Muted>Won’t be matched against your bar</Muted>
+                </View>
+              </Pressable>
+            ) : null
+          }
           ListEmptyComponent={
-            <View style={styles.noResults}>
-              <Muted>No ingredient matches “{term.trim()}”.</Muted>
-            </View>
+            term.trim() ? null : (
+              <View style={styles.noResults}>
+                <Muted>Search for an ingredient.</Muted>
+              </View>
+            )
           }
           renderItem={({ item }) => {
             if (item.type === 'heading') {
