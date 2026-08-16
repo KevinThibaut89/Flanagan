@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Flanagan",
+    "slug": "flanagan",
+    "scheme": "flanagan",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kevinthibaut.flanagan"
+    },
+    "android": {
+      "package": "com.kevinthibaut.flanagan",
+      "adaptiveIcon": {
+        "backgroundColor": "#1A1210",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Flanagan uses the camera to scan bottle barcodes so it can add them to your bar."
+        }
+      ]
+    ]
+  }
+}
