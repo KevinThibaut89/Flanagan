@@ -88,6 +88,19 @@ npx expo start
 Barcode scanning needs real camera hardware, so use a device rather than a
 simulator.
 
+> **The SDK version is pinned deliberately.** This project targets **Expo SDK
+> 56**, not the current `latest`. Expo Go supports exactly one SDK — the one its
+> binary was built against — so a project one SDK ahead of the installed Expo Go
+> is refused outright with *"the project you requested requires a newer version
+> of Expo Go"*, and updating Expo Go does not always fix it: if the newest client
+> needs a newer iOS than the phone runs, the App Store quietly serves the last
+> compatible build instead.
+>
+> So don't bump `expo` to `latest` casually. Change SDK with `npx expo install
+> expo@^<major> --fix`, which moves every Expo package together, and check the
+> phone can still open it before committing. `npx expo install --check` reports
+> whether the current dependency set matches the pinned SDK.
+
 ### Re-applying from scratch
 
 Everything is reproducible from the repo:
