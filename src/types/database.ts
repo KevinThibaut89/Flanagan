@@ -1,431 +1,619 @@
-/**
- * Database types.
- *
- * Hand-written to mirror `supabase/migrations/`. Once the Supabase project
- * exists this file is regenerated from the live schema with:
- *
- *   supabase gen types typescript --project-id <ref> > src/types/database.ts
- *
- * The shape deliberately matches what that generator emits — explicit
- * Row/Insert/Update objects with a `Relationships` tuple — because postgrest-js
- * resolves `.insert()` and `.update()` argument types structurally and falls
- * back to `never` on anything it does not recognise.
- */
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
-export type IngredientKind =
-  | 'spirit'
-  | 'liqueur'
-  | 'vermouth'
-  | 'amaro'
-  | 'bitters'
-  | 'fortified'
-  | 'wine'
-  | 'beer'
-  | 'juice'
-  | 'syrup'
-  | 'mixer'
-  | 'garnish'
-  | 'other';
-
-export type ProductSource = 'off' | 'user';
-export type BottleKind = 'bottle' | 'staple';
-export type BottleStatus = 'in_stock' | 'finished' | 'wishlist';
-export type RecipeSource = 'ai' | 'user' | 'classic';
-export type RecipeMethod = 'shake' | 'stir' | 'build' | 'blend' | 'throw' | 'swizzle' | 'muddle';
-export type RecipeIce = 'none' | 'cubed' | 'crushed' | 'large_cube' | 'block';
-export type MeasureUnit =
-  | 'ml'
-  | 'cl'
-  | 'oz'
-  | 'dash'
-  | 'barspoon'
-  | 'tsp'
-  | 'tbsp'
-  | 'drop'
-  | 'piece'
-  | 'pinch'
-  | 'splash'
-  | 'top';
-export type UnitPreference = 'metric' | 'imperial';
-
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.15"
+  }
   public: {
     Tables: {
-      ingredients: {
-        Row: {
-          id: string;
-          slug: string;
-          name: string;
-          kind: IngredientKind;
-          parent_id: string | null;
-          aliases: string[];
-          is_staple: boolean;
-          sort_order: number;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          slug: string;
-          name: string;
-          kind: IngredientKind;
-          parent_id?: string | null;
-          aliases?: string[];
-          is_staple?: boolean;
-          sort_order?: number;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          slug?: string;
-          name?: string;
-          kind?: IngredientKind;
-          parent_id?: string | null;
-          aliases?: string[];
-          is_staple?: boolean;
-          sort_order?: number;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'ingredients_parent_id_fkey';
-            columns: ['parent_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredients';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      products: {
-        Row: {
-          id: string;
-          barcode: string;
-          name: string;
-          brand: string | null;
-          ingredient_id: string | null;
-          abv: number | null;
-          volume_ml: number | null;
-          country: string | null;
-          image_url: string | null;
-          source: ProductSource;
-          created_by: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          barcode: string;
-          name: string;
-          brand?: string | null;
-          ingredient_id?: string | null;
-          abv?: number | null;
-          volume_ml?: number | null;
-          country?: string | null;
-          image_url?: string | null;
-          source?: ProductSource;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          barcode?: string;
-          name?: string;
-          brand?: string | null;
-          ingredient_id?: string | null;
-          abv?: number | null;
-          volume_ml?: number | null;
-          country?: string | null;
-          image_url?: string | null;
-          source?: ProductSource;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'products_ingredient_id_fkey';
-            columns: ['ingredient_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredients';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      profiles: {
-        Row: {
-          id: string;
-          display_name: string | null;
-          unit_preference: UnitPreference;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          display_name?: string | null;
-          unit_preference?: UnitPreference;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          display_name?: string | null;
-          unit_preference?: UnitPreference;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
       bottles: {
         Row: {
-          id: string;
-          user_id: string;
-          product_id: string | null;
-          ingredient_id: string | null;
-          name: string;
-          brand: string | null;
-          kind: BottleKind;
-          abv: number | null;
-          volume_ml: number | null;
-          fill_pct: number;
-          status: BottleStatus;
-          opened_at: string | null;
-          price: number | null;
-          currency: string | null;
-          notes: string | null;
-          image_url: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          abv: number | null
+          brand: string | null
+          created_at: string
+          currency: string | null
+          fill_pct: number
+          id: string
+          image_url: string | null
+          ingredient_id: string | null
+          kind: Database["public"]["Enums"]["bottle_kind"]
+          name: string
+          notes: string | null
+          opened_at: string | null
+          price: number | null
+          product_id: string | null
+          status: Database["public"]["Enums"]["bottle_status"]
+          updated_at: string
+          user_id: string
+          volume_ml: number | null
+        }
         Insert: {
-          id?: string;
-          user_id: string;
-          product_id?: string | null;
-          ingredient_id?: string | null;
-          name: string;
-          brand?: string | null;
-          kind?: BottleKind;
-          abv?: number | null;
-          volume_ml?: number | null;
-          fill_pct?: number;
-          status?: BottleStatus;
-          opened_at?: string | null;
-          price?: number | null;
-          currency?: string | null;
-          notes?: string | null;
-          image_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          abv?: number | null
+          brand?: string | null
+          created_at?: string
+          currency?: string | null
+          fill_pct?: number
+          id?: string
+          image_url?: string | null
+          ingredient_id?: string | null
+          kind?: Database["public"]["Enums"]["bottle_kind"]
+          name: string
+          notes?: string | null
+          opened_at?: string | null
+          price?: number | null
+          product_id?: string | null
+          status?: Database["public"]["Enums"]["bottle_status"]
+          updated_at?: string
+          user_id: string
+          volume_ml?: number | null
+        }
         Update: {
-          id?: string;
-          user_id?: string;
-          product_id?: string | null;
-          ingredient_id?: string | null;
-          name?: string;
-          brand?: string | null;
-          kind?: BottleKind;
-          abv?: number | null;
-          volume_ml?: number | null;
-          fill_pct?: number;
-          status?: BottleStatus;
-          opened_at?: string | null;
-          price?: number | null;
-          currency?: string | null;
-          notes?: string | null;
-          image_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          abv?: number | null
+          brand?: string | null
+          created_at?: string
+          currency?: string | null
+          fill_pct?: number
+          id?: string
+          image_url?: string | null
+          ingredient_id?: string | null
+          kind?: Database["public"]["Enums"]["bottle_kind"]
+          name?: string
+          notes?: string | null
+          opened_at?: string | null
+          price?: number | null
+          product_id?: string | null
+          status?: Database["public"]["Enums"]["bottle_status"]
+          updated_at?: string
+          user_id?: string
+          volume_ml?: number | null
+        }
         Relationships: [
           {
-            foreignKeyName: 'bottles_product_id_fkey';
-            columns: ['product_id'];
-            isOneToOne: false;
-            referencedRelation: 'products';
-            referencedColumns: ['id'];
+            foreignKeyName: "bottles_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'bottles_ingredient_id_fkey';
-            columns: ['ingredient_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredients';
-            referencedColumns: ['id'];
+            foreignKeyName: "bottles_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-      recipes: {
+        ]
+      }
+      ingredients: {
         Row: {
-          id: string;
-          user_id: string;
-          title: string;
-          source: RecipeSource;
-          glass: string | null;
-          method: RecipeMethod | null;
-          ice: RecipeIce | null;
-          garnish: string | null;
-          instructions: string[];
-          notes: string | null;
-          flavor_tags: string[];
-          base_ingredient_id: string | null;
-          abv_estimate: number | null;
-          servings: number;
-          is_favorite: boolean;
-          ai_prompt: string | null;
-          ai_model: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          aliases: string[]
+          created_at: string
+          id: string
+          is_staple: boolean
+          kind: Database["public"]["Enums"]["ingredient_kind"]
+          name: string
+          parent_id: string | null
+          slug: string
+          sort_order: number
+        }
         Insert: {
-          id?: string;
-          user_id: string;
-          title: string;
-          source?: RecipeSource;
-          glass?: string | null;
-          method?: RecipeMethod | null;
-          ice?: RecipeIce | null;
-          garnish?: string | null;
-          instructions?: string[];
-          notes?: string | null;
-          flavor_tags?: string[];
-          base_ingredient_id?: string | null;
-          abv_estimate?: number | null;
-          servings?: number;
-          is_favorite?: boolean;
-          ai_prompt?: string | null;
-          ai_model?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          aliases?: string[]
+          created_at?: string
+          id?: string
+          is_staple?: boolean
+          kind: Database["public"]["Enums"]["ingredient_kind"]
+          name: string
+          parent_id?: string | null
+          slug: string
+          sort_order?: number
+        }
         Update: {
-          id?: string;
-          user_id?: string;
-          title?: string;
-          source?: RecipeSource;
-          glass?: string | null;
-          method?: RecipeMethod | null;
-          ice?: RecipeIce | null;
-          garnish?: string | null;
-          instructions?: string[];
-          notes?: string | null;
-          flavor_tags?: string[];
-          base_ingredient_id?: string | null;
-          abv_estimate?: number | null;
-          servings?: number;
-          is_favorite?: boolean;
-          ai_prompt?: string | null;
-          ai_model?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          aliases?: string[]
+          created_at?: string
+          id?: string
+          is_staple?: boolean
+          kind?: Database["public"]["Enums"]["ingredient_kind"]
+          name?: string
+          parent_id?: string | null
+          slug?: string
+          sort_order?: number
+        }
         Relationships: [
           {
-            foreignKeyName: 'recipes_base_ingredient_id_fkey';
-            columns: ['base_ingredient_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredients';
-            referencedColumns: ['id'];
+            foreignKeyName: "ingredients_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
+      products: {
+        Row: {
+          abv: number | null
+          barcode: string
+          brand: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          image_url: string | null
+          ingredient_id: string | null
+          name: string
+          source: Database["public"]["Enums"]["product_source"]
+          updated_at: string
+          volume_ml: number | null
+        }
+        Insert: {
+          abv?: number | null
+          barcode: string
+          brand?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          ingredient_id?: string | null
+          name: string
+          source?: Database["public"]["Enums"]["product_source"]
+          updated_at?: string
+          volume_ml?: number | null
+        }
+        Update: {
+          abv?: number | null
+          barcode?: string
+          brand?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          ingredient_id?: string | null
+          name?: string
+          source?: Database["public"]["Enums"]["product_source"]
+          updated_at?: string
+          volume_ml?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          unit_preference: Database["public"]["Enums"]["unit_preference"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+          unit_preference?: Database["public"]["Enums"]["unit_preference"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          unit_preference?: Database["public"]["Enums"]["unit_preference"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       recipe_ingredients: {
         Row: {
-          id: string;
-          recipe_id: string;
-          ingredient_id: string | null;
-          free_text: string | null;
-          amount_ml: number | null;
-          amount_display: number | null;
-          unit_display: MeasureUnit | null;
-          is_optional: boolean;
-          is_garnish: boolean;
-          position: number;
-          note: string | null;
-        };
+          amount_display: number | null
+          amount_ml: number | null
+          free_text: string | null
+          id: string
+          ingredient_id: string | null
+          is_garnish: boolean
+          is_optional: boolean
+          note: string | null
+          position: number
+          recipe_id: string
+          unit_display: Database["public"]["Enums"]["measure_unit"] | null
+        }
         Insert: {
-          id?: string;
-          recipe_id: string;
-          ingredient_id?: string | null;
-          free_text?: string | null;
-          amount_ml?: number | null;
-          amount_display?: number | null;
-          unit_display?: MeasureUnit | null;
-          is_optional?: boolean;
-          is_garnish?: boolean;
-          position?: number;
-          note?: string | null;
-        };
+          amount_display?: number | null
+          amount_ml?: number | null
+          free_text?: string | null
+          id?: string
+          ingredient_id?: string | null
+          is_garnish?: boolean
+          is_optional?: boolean
+          note?: string | null
+          position?: number
+          recipe_id: string
+          unit_display?: Database["public"]["Enums"]["measure_unit"] | null
+        }
         Update: {
-          id?: string;
-          recipe_id?: string;
-          ingredient_id?: string | null;
-          free_text?: string | null;
-          amount_ml?: number | null;
-          amount_display?: number | null;
-          unit_display?: MeasureUnit | null;
-          is_optional?: boolean;
-          is_garnish?: boolean;
-          position?: number;
-          note?: string | null;
-        };
+          amount_display?: number | null
+          amount_ml?: number | null
+          free_text?: string | null
+          id?: string
+          ingredient_id?: string | null
+          is_garnish?: boolean
+          is_optional?: boolean
+          note?: string | null
+          position?: number
+          recipe_id?: string
+          unit_display?: Database["public"]["Enums"]["measure_unit"] | null
+        }
         Relationships: [
           {
-            foreignKeyName: 'recipe_ingredients_recipe_id_fkey';
-            columns: ['recipe_id'];
-            isOneToOne: false;
-            referencedRelation: 'recipes';
-            referencedColumns: ['id'];
+            foreignKeyName: "recipe_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'recipe_ingredients_ingredient_id_fkey';
-            columns: ['ingredient_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredients';
-            referencedColumns: ['id'];
+            foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-    };
-    Views: { [_ in never]: never };
+        ]
+      }
+      recipes: {
+        Row: {
+          abv_estimate: number | null
+          ai_model: string | null
+          ai_prompt: string | null
+          base_ingredient_id: string | null
+          created_at: string
+          flavor_tags: string[]
+          garnish: string | null
+          glass: string | null
+          ice: Database["public"]["Enums"]["recipe_ice"] | null
+          id: string
+          instructions: string[]
+          is_favorite: boolean
+          method: Database["public"]["Enums"]["recipe_method"] | null
+          notes: string | null
+          servings: number
+          source: Database["public"]["Enums"]["recipe_source"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          abv_estimate?: number | null
+          ai_model?: string | null
+          ai_prompt?: string | null
+          base_ingredient_id?: string | null
+          created_at?: string
+          flavor_tags?: string[]
+          garnish?: string | null
+          glass?: string | null
+          ice?: Database["public"]["Enums"]["recipe_ice"] | null
+          id?: string
+          instructions?: string[]
+          is_favorite?: boolean
+          method?: Database["public"]["Enums"]["recipe_method"] | null
+          notes?: string | null
+          servings?: number
+          source?: Database["public"]["Enums"]["recipe_source"]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          abv_estimate?: number | null
+          ai_model?: string | null
+          ai_prompt?: string | null
+          base_ingredient_id?: string | null
+          created_at?: string
+          flavor_tags?: string[]
+          garnish?: string | null
+          glass?: string | null
+          ice?: Database["public"]["Enums"]["recipe_ice"] | null
+          id?: string
+          instructions?: string[]
+          is_favorite?: boolean
+          method?: Database["public"]["Enums"]["recipe_method"] | null
+          notes?: string | null
+          servings?: number
+          source?: Database["public"]["Enums"]["recipe_source"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_base_ingredient_id_fkey"
+            columns: ["base_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
       available_ingredient_ids: {
-        Args: { p_user_id: string };
-        Returns: { ingredient_id: string }[];
-      };
+        Args: { p_user_id: string }
+        Returns: {
+          ingredient_id: string
+        }[]
+      }
       can_make: {
-        Args: { p_recipe_id: string; p_user_id: string };
-        Returns: boolean;
-      };
+        Args: { p_recipe_id: string; p_user_id: string }
+        Returns: boolean
+      }
       my_makeable_recipe_ids: {
-        Args: Record<PropertyKey, never>;
-        Returns: { recipe_id: string }[];
-      };
-    };
+        Args: never
+        Returns: {
+          recipe_id: string
+        }[]
+      }
+    }
     Enums: {
-      ingredient_kind: IngredientKind;
-      product_source: ProductSource;
-      bottle_kind: BottleKind;
-      bottle_status: BottleStatus;
-      recipe_source: RecipeSource;
-      recipe_method: RecipeMethod;
-      recipe_ice: RecipeIce;
-      measure_unit: MeasureUnit;
-      unit_preference: UnitPreference;
-    };
-    CompositeTypes: { [_ in never]: never };
-  };
+      bottle_kind: "bottle" | "staple"
+      bottle_status: "in_stock" | "finished" | "wishlist"
+      ingredient_kind:
+        | "spirit"
+        | "liqueur"
+        | "vermouth"
+        | "amaro"
+        | "bitters"
+        | "fortified"
+        | "wine"
+        | "beer"
+        | "juice"
+        | "syrup"
+        | "mixer"
+        | "garnish"
+        | "other"
+      measure_unit:
+        | "ml"
+        | "cl"
+        | "oz"
+        | "dash"
+        | "barspoon"
+        | "tsp"
+        | "tbsp"
+        | "drop"
+        | "piece"
+        | "pinch"
+        | "splash"
+        | "top"
+      product_source: "off" | "user"
+      recipe_ice: "none" | "cubed" | "crushed" | "large_cube" | "block"
+      recipe_method:
+        | "shake"
+        | "stir"
+        | "build"
+        | "blend"
+        | "throw"
+        | "swizzle"
+        | "muddle"
+      recipe_source: "ai" | "user" | "classic"
+      unit_preference: "metric" | "imperial"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
-type PublicTables = Database['public']['Tables'];
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-export type Ingredient = PublicTables['ingredients']['Row'];
-export type Product = PublicTables['products']['Row'];
-export type Profile = PublicTables['profiles']['Row'];
-export type Bottle = PublicTables['bottles']['Row'];
-export type Recipe = PublicTables['recipes']['Row'];
-export type RecipeIngredient = PublicTables['recipe_ingredients']['Row'];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-export type BottleInsert = PublicTables['bottles']['Insert'];
-export type BottleUpdate = PublicTables['bottles']['Update'];
-export type ProductInsert = PublicTables['products']['Insert'];
-export type RecipeInsert = PublicTables['recipes']['Insert'];
-export type RecipeIngredientInsert = PublicTables['recipe_ingredients']['Insert'];
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      bottle_kind: ["bottle", "staple"],
+      bottle_status: ["in_stock", "finished", "wishlist"],
+      ingredient_kind: [
+        "spirit",
+        "liqueur",
+        "vermouth",
+        "amaro",
+        "bitters",
+        "fortified",
+        "wine",
+        "beer",
+        "juice",
+        "syrup",
+        "mixer",
+        "garnish",
+        "other",
+      ],
+      measure_unit: [
+        "ml",
+        "cl",
+        "oz",
+        "dash",
+        "barspoon",
+        "tsp",
+        "tbsp",
+        "drop",
+        "piece",
+        "pinch",
+        "splash",
+        "top",
+      ],
+      product_source: ["off", "user"],
+      recipe_ice: ["none", "cubed", "crushed", "large_cube", "block"],
+      recipe_method: [
+        "shake",
+        "stir",
+        "build",
+        "blend",
+        "throw",
+        "swizzle",
+        "muddle",
+      ],
+      recipe_source: ["ai", "user", "classic"],
+      unit_preference: ["metric", "imperial"],
+    },
+  },
+} as const
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Everything above this line is generated. Regenerate with:
+//
+//   supabase gen types typescript --project-id qhmovlrsmwlkfgypwglr
+//
+// and then re-append this block, which gives the generated shapes the short
+// names the app imports.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type Ingredient = Tables<'ingredients'>
+export type Product = Tables<'products'>
+export type Profile = Tables<'profiles'>
+export type Bottle = Tables<'bottles'>
+export type Recipe = Tables<'recipes'>
+export type RecipeIngredient = Tables<'recipe_ingredients'>
+
+export type BottleInsert = TablesInsert<'bottles'>
+export type BottleUpdate = TablesUpdate<'bottles'>
+export type ProductInsert = TablesInsert<'products'>
+export type RecipeInsert = TablesInsert<'recipes'>
+export type RecipeIngredientInsert = TablesInsert<'recipe_ingredients'>
+
+export type IngredientKind = Enums<'ingredient_kind'>
+export type ProductSource = Enums<'product_source'>
+export type BottleKind = Enums<'bottle_kind'>
+export type BottleStatus = Enums<'bottle_status'>
+export type RecipeSource = Enums<'recipe_source'>
+export type RecipeMethod = Enums<'recipe_method'>
+export type RecipeIce = Enums<'recipe_ice'>
+export type MeasureUnit = Enums<'measure_unit'>
+export type UnitPreference = Enums<'unit_preference'>

@@ -46,30 +46,24 @@ display concern.
 
 ## Setup
 
-### 1. Supabase project
+The Supabase project (`qhmovlrsmwlkfgypwglr`, eu-west-2) is already provisioned:
+migrations applied, 177 ingredients seeded, row-level security on every table,
+and both edge functions deployed. Three things remain.
 
-Create a project, then apply the schema. With the CLI:
+### 1. The Anthropic key
 
-```sh
-supabase link --project-ref <your-project-ref>
-supabase db push
-```
-
-The migrations in `supabase/migrations/` create the tables, row-level security
-policies, the `can_make()` function, and seed roughly 160 ingredients covering a
-well-equipped bar.
-
-### 2. App environment
+The only outstanding piece, and the one the Ask tab needs:
 
 ```sh
-cp .env.example .env
+supabase link --project-ref qhmovlrsmwlkfgypwglr
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Fill in `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` from
-**Project settings → API**. Both are safe in the app bundle: the publishable key
-only grants what row-level security allows.
+Or set it under **Edge Functions → Secrets** in the dashboard. It lives there and
+only there — never in the app bundle. Until it's set, `suggest-cocktails` returns
+"the suggestion service is not configured"; everything else works.
 
-### 3. Email sign-in
+### 2. Email sign-in
 
 Sign-in uses a six-digit code rather than a magic link, so there is no deep-link
 configuration to get wrong. Supabase sends a link by default — in **Authentication
@@ -79,19 +73,12 @@ configuration to get wrong. Supabase sends a link by default — in **Authentica
 Your Flanagan code is {{ .Token }}
 ```
 
-### 4. Edge functions
+### 3. Run it
 
-```sh
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-supabase functions deploy lookup-barcode
-supabase functions deploy suggest-cocktails
-```
-
-The Anthropic key lives here and only here — it is never shipped in the app. The
-functions verify the caller's JWT before doing anything, and read the inventory
-from the caller's own rows rather than trusting anything the client sends.
-
-### 5. Run it
+`.env` is already filled in with the project URL and publishable key (both safe
+in the bundle — the key grants only what row-level security allows). If you're
+setting up a fresh clone, `cp .env.example .env` and copy them from **Project
+settings → API**.
 
 ```sh
 npm install
@@ -100,6 +87,16 @@ npx expo start
 
 Barcode scanning needs real camera hardware, so use a device rather than a
 simulator.
+
+### Re-applying from scratch
+
+Everything is reproducible from the repo:
+
+```sh
+supabase db push                      # all migrations, in order
+supabase functions deploy lookup-barcode
+supabase functions deploy suggest-cocktails
+```
 
 ---
 
