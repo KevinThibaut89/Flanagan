@@ -1,8 +1,9 @@
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { IngredientPicker } from './IngredientPicker';
-import { Body, Muted } from './ui';
+import { Body, Muted, PressableScale } from './ui';
 import { toMl } from '../lib/units';
 import { colors, radius, spacing } from '../theme';
 import type { MeasureUnit, RecipeIngredientInsert } from '../types/database';
@@ -82,9 +83,12 @@ export function RecipeLineEditor({
           keyboardShouldPersistTaps="handled"
         >
           {QUICK_UNITS.map((unit) => (
-            <Pressable
+            <PressableScale
               key={unit}
-              onPress={() => set('unit', line.unit === unit ? null : unit)}
+              onPress={() => {
+                void Haptics.selectionAsync();
+                set('unit', line.unit === unit ? null : unit);
+              }}
               style={[styles.unitChip, line.unit === unit && styles.unitChipActive]}
               accessibilityRole="button"
               accessibilityState={{ selected: line.unit === unit }}
@@ -92,13 +96,13 @@ export function RecipeLineEditor({
               <Body style={[styles.unitLabel, line.unit === unit && styles.unitLabelActive]}>
                 {UNIT_LABELS[unit] ?? unit}
               </Body>
-            </Pressable>
+            </PressableScale>
           ))}
         </ScrollView>
 
-        <Pressable onPress={onRemove} hitSlop={10} accessibilityLabel="Remove this ingredient">
+        <PressableScale onPress={onRemove} hitSlop={8} accessibilityLabel="Remove this ingredient">
           <MaterialCommunityIcons name="close" size={20} color={colors.textFaint} />
-        </Pressable>
+        </PressableScale>
       </View>
 
       <IngredientPicker
@@ -139,9 +143,12 @@ function Toggle({
   onPress: () => void;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.toggle, active && styles.toggleActive]}
+    <PressableScale
+      onPress={() => {
+        void Haptics.selectionAsync();
+        onPress();
+      }}
+      style={styles.toggle}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: active }}
     >
@@ -151,7 +158,7 @@ function Toggle({
         color={active ? colors.accent : colors.textFaint}
       />
       <Body style={[styles.toggleLabel, active && styles.toggleLabelActive]}>{label}</Body>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -188,8 +195,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
     padding: spacing.md,
     gap: spacing.sm,
   },
@@ -217,11 +222,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
   unitChipActive: {
-    backgroundColor: colors.accentDim,
     borderColor: colors.accent,
   },
   unitLabel: {
@@ -242,7 +246,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
-  toggleActive: {},
   toggleLabel: {
     fontSize: 13,
     color: colors.textFaint,

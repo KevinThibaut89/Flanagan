@@ -1,32 +1,42 @@
 /**
  * A single dark theme. A bar app is used in dim rooms at night, so there is no
  * light variant to maintain — every colour here is tuned against `bg`.
+ *
+ * The design language is a cocktail menu, not a dashboard: content is the
+ * interface and containers are rare. Fraunces carries the voice (titles,
+ * numerals, flourishes); the system sans carries the interface (buttons,
+ * labels, metadata). Copper appears at most three times per screen — the
+ * primary action, the active tab, one keyline or numeral — so that when it
+ * does appear it reads as a brass rail, not a theme colour.
  */
 
 export const colors = {
-  bg: '#14100E',
-  surface: '#1F1917',
-  surfaceRaised: '#2A2321',
-  border: '#3A302C',
-  borderSubtle: '#2C2422',
+  bg: '#120E0B',
+  surface: '#1C1714',
+  /** Modals and sheets only. */
+  surfaceRaised: '#262019',
 
-  text: '#F5EDE6',
-  textMuted: '#A89A90',
-  textFaint: '#75675F',
+  /** Hairlines are derived from the text colour so they sit in the same warm register. */
+  border: 'rgba(245, 237, 230, 0.10)',
+  borderSubtle: 'rgba(245, 237, 230, 0.06)',
 
-  /** Copper. Primary actions, active tabs, links. */
+  text: '#F3EBE2',
+  textMuted: '#B0A296',
+  textFaint: '#6E6259',
+
+  /** Copper. The one accent — primary actions, active tab, a rare keyline. */
   accent: '#C87F3C',
-  accentSoft: '#E5A96A',
-  accentDim: '#4A3524',
-  /** Translucent copper wash for highlighted surfaces and icon wells. */
-  accentGlow: 'rgba(200, 127, 60, 0.14)',
+  /** Pressed/active copper and the bright stop of the brand gradient. */
+  accentSoft: '#E2A15D',
+  /** The quiet-luxury secondary: ornaments, numerals, monograms. */
+  cream: '#E9DCC9',
 
   success: '#6FA86B',
   warning: '#D4A03C',
   danger: '#C4574B',
 
   /** Translucent overlay for modals and scanner chrome. */
-  scrim: 'rgba(10, 7, 6, 0.75)',
+  scrim: 'rgba(8, 6, 4, 0.78)',
 } as const;
 
 // Category accents, used for bottle type pills and recipe base-spirit tags.
@@ -58,6 +68,10 @@ export const spacing = {
   lg: 16,
   xl: 24,
   xxl: 32,
+  /** Horizontal screen inset. Every screen shares this left edge. */
+  gutter: 20,
+  /** Vertical rhythm between sections. */
+  section: 36,
 } as const;
 
 export const radius = {
@@ -69,43 +83,65 @@ export const radius = {
 } as const;
 
 /**
- * Gradient stops for `expo-linear-gradient`. Kept here so every gradient in
- * the app comes from the same small set, tuned against `bg`.
+ * The one gradient in the app: copper sheen on primary CTAs. Everything else
+ * sits on flat surfaces — flat is what expensive looks like in the dark.
  */
 export const gradients = {
-  /** Warm candle-lit surface for the hero card on Home. */
-  hero: ['#38271A', '#241A13', '#1C1512'] as const,
-  /** Copper sheen for the brand mark and raised primary actions. */
-  brand: ['#E5A96A', '#C87F3C'] as const,
-  /** Barely-there lift for secondary cards. */
-  card: ['#241D1A', '#1F1917'] as const,
+  brand: ['#E2A15D', '#C87F3C'] as const,
 } as const;
 
-/** Elevation presets — RN needs both the iOS shadow and Android elevation. */
+/** One soft elevation for floating elements; nothing else casts. */
 export const shadows = {
   card: {
     shadowColor: '#000',
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.28,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 3,
   },
-  raised: {
-    shadowColor: '#C87F3C',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
 } as const;
 
+/**
+ * Fraunces = voice, system sans = interface. If a string is tappable chrome
+ * it is sans; if it is content with personality it is Fraunces. Fraunces is
+ * never set below 16pt and never positively letterspaced.
+ */
 export const typography = {
-  /** Oversized numerals and the Home greeting. */
-  display: { fontSize: 32, fontWeight: '800' as const, letterSpacing: -0.8 },
-  title: { fontSize: 28, fontWeight: '700' as const, letterSpacing: -0.5 },
-  heading: { fontSize: 20, fontWeight: '700' as const, letterSpacing: -0.3 },
+  // Fraunces — voice.
+  display: {
+    fontFamily: 'Fraunces_600SemiBold',
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -0.5,
+  },
+  title: {
+    fontFamily: 'Fraunces_600SemiBold',
+    fontSize: 26,
+    lineHeight: 32,
+    letterSpacing: -0.3,
+  },
+  heading: {
+    fontFamily: 'Fraunces_500Medium',
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: -0.2,
+  },
+  /** Recipe descriptions and other prose with personality. */
+  serifBody: { fontFamily: 'Fraunces_400Regular', fontSize: 16, lineHeight: 24 },
+  /** Italic flourishes: "No. 12", invitations, empty-state lines. */
+  flourish: { fontFamily: 'Fraunces_400Regular_Italic', fontSize: 16, lineHeight: 22 },
+  /** Ledger numerals on Home. */
+  statNumeral: { fontFamily: 'Fraunces_500Medium', fontSize: 28, lineHeight: 32 },
+
+  // System sans — interface.
   subheading: { fontSize: 16, fontWeight: '600' as const },
-  body: { fontSize: 15, fontWeight: '400' as const },
-  small: { fontSize: 13, fontWeight: '400' as const },
-  tiny: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.6 },
+  body: { fontSize: 15, fontWeight: '400' as const, lineHeight: 21 },
+  small: { fontSize: 13, fontWeight: '400' as const, lineHeight: 18 },
+  /** Letterspaced uppercase label — the workhorse section/field label. */
+  overline: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase' as const,
+  },
 } as const;

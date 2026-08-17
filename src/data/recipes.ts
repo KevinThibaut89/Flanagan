@@ -102,6 +102,17 @@ export function canMake(recipe: RecipeWithIngredients, available: Set<string>): 
   });
 }
 
+/**
+ * Menu numbering: recipes are numbered in the order they entered the notebook,
+ * so "No. 12" stays stable as the library grows. Purely presentational.
+ */
+export function recipeNumbers(recipes: RecipeWithIngredients[]): Map<string, number> {
+  const ordered = [...recipes].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const numbers = new Map<string, number>();
+  ordered.forEach((recipe, i) => numbers.set(recipe.id, i + 1));
+  return numbers;
+}
+
 /** The required lines a recipe is short of, for the "you're missing" list. */
 export function missingIngredients(
   recipe: RecipeWithIngredients,

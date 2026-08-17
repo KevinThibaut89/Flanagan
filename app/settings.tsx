@@ -1,12 +1,22 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { Button } from '../src/components/Button';
-import { Body, Card, Divider, Label, Muted, Screen, Title } from '../src/components/ui';
+import {
+  Body,
+  Card,
+  Divider,
+  Label,
+  Muted,
+  PressableScale,
+  Screen,
+  Title,
+} from '../src/components/ui';
 import { useAuth } from '../src/providers/auth';
 import { usePreferences } from '../src/providers/preferences';
-import { colors, radius, spacing } from '../src/theme';
+import { colors, spacing } from '../src/theme';
 import type { UnitPreference } from '../src/types/database';
 
 const UNIT_OPTIONS: Array<{ value: UnitPreference; label: string; example: string }> = [
@@ -23,9 +33,9 @@ export default function SettingsScreen() {
     <Screen edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Title>Settings</Title>
-        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Close">
+        <PressableScale onPress={() => router.back()} hitSlop={8} accessibilityLabel="Close">
           <MaterialCommunityIcons name="close" size={24} color={colors.textMuted} />
-        </Pressable>
+        </PressableScale>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -35,8 +45,11 @@ export default function SettingsScreen() {
             {UNIT_OPTIONS.map((option, i) => (
               <View key={option.value}>
                 {i > 0 ? <Divider style={styles.optionDivider} /> : null}
-                <Pressable
-                  onPress={() => setUnits(option.value)}
+                <PressableScale
+                  onPress={() => {
+                    void Haptics.selectionAsync();
+                    setUnits(option.value);
+                  }}
                   style={styles.option}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: units === option.value }}
@@ -48,7 +61,7 @@ export default function SettingsScreen() {
                   {units === option.value ? (
                     <MaterialCommunityIcons name="check" size={20} color={colors.accent} />
                   ) : null}
-                </Pressable>
+                </PressableScale>
               </View>
             ))}
           </Card>
@@ -76,11 +89,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.gutter,
     paddingVertical: spacing.md,
   },
   content: {
-    padding: spacing.lg,
+    padding: spacing.gutter,
     gap: spacing.xxl,
   },
   section: {
@@ -111,6 +124,6 @@ const styles = StyleSheet.create({
   email: {
     marginTop: spacing.xs,
     fontWeight: '600',
-    color: colors.accentSoft,
+    color: colors.cream,
   },
 });

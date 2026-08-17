@@ -5,10 +5,10 @@ import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'ex
 import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { Button } from '../../src/components/Button';
-import { Body, Heading, Muted, Screen } from '../../src/components/ui';
-import { lookupBarcode } from '../../src/data/products';
-import { colors, radius, spacing } from '../../src/theme';
+import { Button } from '../src/components/Button';
+import { Body, Heading, Muted, Screen } from '../src/components/ui';
+import { lookupBarcode } from '../src/data/products';
+import { colors, radius, spacing } from '../src/theme';
 
 /** Barcode symbologies actually printed on bottles. */
 const BARCODE_TYPES = ['ean13', 'ean8', 'upc_a', 'upc_e'] as const;
@@ -181,6 +181,15 @@ export default function ScanScreen() {
       </View>
 
       <Pressable
+        style={styles.close}
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        accessibilityRole="button"
+        accessibilityLabel="Close the scanner"
+      >
+        <MaterialCommunityIcons name="close" size={20} color={colors.text} />
+      </Pressable>
+
+      <Pressable
         style={styles.manual}
         onPress={() => router.push('/bottle/new')}
         accessibilityRole="button"
@@ -205,12 +214,13 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.xxl,
   },
+  // The viewfinder echoes the coaster monogram: a thin copper line, no bulk.
   reticle: {
     width: '80%',
     aspectRatio: 1.9,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.accent,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
   },
   panel: {
     backgroundColor: colors.scrim,
@@ -232,10 +242,21 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.lg,
   },
+  close: {
+    position: 'absolute',
+    top: spacing.xxl + spacing.lg,
+    left: spacing.gutter,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.scrim,
+  },
   manual: {
     position: 'absolute',
     top: spacing.xxl + spacing.lg,
-    right: spacing.lg,
+    right: spacing.gutter,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
