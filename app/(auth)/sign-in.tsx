@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
 import { TextField } from '../../src/components/TextField';
 import { Body, Muted, Screen, Title } from '../../src/components/ui';
 import { useAuth } from '../../src/providers/auth';
-import { colors, spacing } from '../../src/theme';
+import { colors, gradients, shadows, spacing, typography } from '../../src/theme';
 
 type Step = 'email' | 'code';
 
@@ -63,7 +65,15 @@ export default function SignIn() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Title>Flanagan</Title>
+            <LinearGradient
+              colors={gradients.brand}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.monogram}
+            >
+              <MaterialCommunityIcons name="glass-cocktail" size={34} color={colors.bg} />
+            </LinearGradient>
+            <Title style={styles.brand}>Flanagan</Title>
             <Muted style={styles.tagline}>Your bar, and what it can make tonight.</Muted>
           </View>
 
@@ -133,9 +143,24 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: spacing.sm,
+    alignItems: 'center',
+  },
+  monogram: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    ...shadows.raised,
+  },
+  brand: {
+    ...typography.display,
+    fontSize: 36,
   },
   tagline: {
     fontSize: 15,
+    textAlign: 'center',
   },
   form: {
     gap: spacing.lg,

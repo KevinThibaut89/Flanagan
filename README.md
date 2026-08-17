@@ -2,6 +2,10 @@
 
 A personal mixology app: your bottles, and what they can make tonight.
 
+- **Home** — where the app opens: a greeting, the Ask entry point with one-tap
+  mood prompts, tonight's makeable picks, bar-at-a-glance stats, bottles
+  running low, and quick actions. Every tile deep-links into the right
+  pre-filtered view.
 - **Bar** — your inventory, added by scanning barcodes or by hand, plus the
   everyday staples (limes, syrup, soda) that decide whether a drink is actually
   possible.

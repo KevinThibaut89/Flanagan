@@ -1,176 +1,304 @@
-import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { useMemo } from 'react';
+import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
-import { CategoryPill, colorForKind } from '../../src/components/CategoryPill';
-import { Body, EmptyState, ErrorState, Loading, Muted, Screen, Title } from '../../src/components/ui';
-import { useBottles } from '../../src/data/bottles';
+import { colorForKind } from '../../src/components/CategoryPill';
+import { Body, Heading, Label, Loading, Muted, Screen, Title } from '../../src/components/ui';
+import { useAvailableIngredientIds, useBottles } from '../../src/data/bottles';
 import { useIngredientIndex } from '../../src/data/ingredients';
-import { formatBottleSize } from '../../src/lib/units';
-import { useUnits } from '../../src/providers/preferences';
-import { colors, radius, spacing, typography } from '../../src/theme';
-import type { Bottle, IngredientKind } from '../../src/types/database';
+import { canMake, useRecipes, type RecipeWithIngredients } from '../../src/data/recipes';
+import { colors, gradients, radius, shadows, spacing, typography } from '../../src/theme';
+import type { Bottle } from '../../src/types/database';
 
-type Filter = 'all' | 'bottles' | 'staples' | 'low' | 'out';
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const FILTERS: Array<{ key: Filter; label: string }> = [
-  { key: 'all', label: 'All' },
-  { key: 'bottles', label: 'Bottles' },
-  { key: 'staples', label: 'Staples' },
-  { key: 'low', label: 'Running low' },
-  { key: 'out', label: 'Out' },
-];
-
-/** Below this the bottle shows as running low. */
+/** Below this the bottle counts as running low — matches the Bar screen. */
 const LOW_FILL_PCT = 25;
 
-export default function BarScreen() {
+const MOODS: Array<{ label: string; icon: IconName; prompt: string }> = [
+  { label: 'Bitter & stirred', icon: 'glass-cocktail', prompt: 'Something bitter and stirred' },
+  { label: 'Fresh & citrusy', icon: 'fruit-citrus', prompt: 'Something fresh and citrusy' },
+  { label: 'Short & strong', icon: 'fire', prompt: 'Something short, strong and spirit-forward' },
+  { label: 'Surprise me', icon: 'dice-5-outline', prompt: 'Surprise me with something I would not think of' },
+];
+
+function greetingForHour(hour: number): string {
+  if (hour < 5) return 'Still up?';
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+export default function HomeScreen() {
   const router = useRouter();
-  const units = useUnits();
-  const { data: bottles, isLoading, error, refetch, isRefetching } = useBottles();
+  const { data: bottles, isLoading: bottlesLoading } = useBottles();
+  const { data: recipes, isLoading: recipesLoading } = useRecipes();
+  const available = useAvailableIngredientIds();
   const { index } = useIngredientIndex();
 
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<Filter>('all');
-
-  const visible = useMemo(() => {
-    if (!bottles) return [];
-    const needle = search.trim().toLowerCase();
-
-    return bottles.filter((bottle) => {
-      if (filter === 'bottles' && bottle.kind !== 'bottle') return false;
-      if (filter === 'staples' && bottle.kind !== 'staple') return false;
-      if (filter === 'out' && bottle.status === 'in_stock') return false;
-      if (filter === 'low') {
-        if (bottle.status !== 'in_stock') return false;
-        if (bottle.fill_pct > LOW_FILL_PCT) return false;
-      }
-      if (filter !== 'out' && filter !== 'low' && bottle.status === 'finished') return false;
-
-      if (!needle) return true;
-      return (
-        bottle.name.toLowerCase().includes(needle) ||
-        (bottle.brand?.toLowerCase().includes(needle) ?? false)
-      );
-    });
-  }, [bottles, search, filter]);
-
-  const inStockCount = useMemo(
-    () => (bottles ?? []).filter((b) => b.status === 'in_stock').length,
+  const inStock = useMemo(
+    () => (bottles ?? []).filter((b) => b.status === 'in_stock'),
     [bottles],
   );
+  const lowBottles = useMemo(
+    () =>
+      inStock.filter((b) => b.kind === 'bottle' && b.fill_pct <= LOW_FILL_PCT),
+    [inStock],
+  );
+  const makeable = useMemo(
+    () => (recipes ?? []).filter((recipe) => canMake(recipe, available)),
+    [recipes, available],
+  );
+  const favoriteCount = useMemo(
+    () => (recipes ?? []).filter((recipe) => recipe.is_favorite).length,
+    [recipes],
+  );
 
-  if (isLoading) return <Loading label="Reading your shelf…" />;
-  if (error) {
-    return (
-      <Screen>
-        <ErrorState error={error} action={<Button label="Try again" onPress={() => refetch()} />} />
-      </Screen>
+  // Favourites lead the carousel; the rest keep their newest-first order.
+  const picks = useMemo(() => {
+    const sorted = [...makeable].sort(
+      (a, b) => Number(b.is_favorite) - Number(a.is_favorite),
     );
-  }
+    return sorted.slice(0, 8);
+  }, [makeable]);
+
+  if (bottlesLoading || recipesLoading) return <Loading label="Setting up the bar…" />;
+
+  const hasBottles = (bottles?.length ?? 0) > 0;
+  const greeting = greetingForHour(new Date().getHours());
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <View>
-            <Title>Your bar</Title>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.topRow}>
+          <View style={styles.greetingBlock}>
+            <Title style={styles.greeting}>{greeting}</Title>
             <Muted>
-              {inStockCount} {inStockCount === 1 ? 'item' : 'items'} in stock
+              {hasBottles
+                ? `${inStock.length} in stock · ${makeable.length} ${
+                    makeable.length === 1 ? 'cocktail' : 'cocktails'
+                  } within reach`
+                : 'Let’s get your bar set up.'}
             </Muted>
           </View>
-          <View style={styles.headerActions}>
-            <IconButton icon="tune-variant" label="Staples" onPress={() => router.push('/staples')} />
-            <IconButton icon="cog-outline" label="Settings" onPress={() => router.push('/settings')} />
+          <View style={styles.topActions}>
+            <TopIconButton icon="tune-variant" label="Staples" onPress={() => router.push('/staples')} />
+            <TopIconButton icon="cog-outline" label="Settings" onPress={() => router.push('/settings')} />
           </View>
         </View>
 
-        <View style={styles.searchWrap}>
-          <MaterialCommunityIcons name="magnify" size={18} color={colors.textFaint} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search your bottles"
-            placeholderTextColor={colors.textFaint}
-            selectionColor={colors.accent}
-            autoCorrect={false}
-            style={styles.searchInput}
-          />
-          {search ? (
-            <Pressable onPress={() => setSearch('')} hitSlop={8} accessibilityLabel="Clear search">
-              <MaterialCommunityIcons name="close-circle" size={18} color={colors.textFaint} />
-            </Pressable>
-          ) : null}
-        </View>
-
-        <FlatList
-          horizontal
-          data={FILTERS}
-          keyExtractor={(item) => item.key}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => setFilter(item.key)}
-              style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
-            >
-              <Body
-                style={[styles.filterLabel, filter === item.key && styles.filterLabelActive]}
-              >
-                {item.label}
-              </Body>
-            </Pressable>
-          )}
+        <AskHero
+          onAsk={() => router.push('/ask')}
+          onMood={(prompt) => router.push({ pathname: '/ask', params: { q: prompt } })}
         />
-      </View>
 
-      <FlatList
-        data={visible}
-        keyExtractor={(item) => item.id}
-        refreshing={isRefetching}
-        onRefresh={refetch}
-        contentContainerStyle={visible.length === 0 ? styles.emptyWrap : styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListEmptyComponent={
-          bottles && bottles.length === 0 ? (
-            <EmptyState
-              title="Nothing on the shelf yet"
-              message="Scan a bottle’s barcode to add it, or enter one by hand. Add your everyday staples too — limes, syrup, soda — so Flanagan knows what you can actually make."
-              action={<Button label="Scan a bottle" onPress={() => router.push('/scan')} />}
+        {hasBottles ? (
+          <>
+            <View style={styles.statGrid}>
+              <StatTile
+                icon="bottle-wine-outline"
+                value={inStock.length}
+                label="In stock"
+                href="/bar"
+              />
+              <StatTile
+                icon="check-circle-outline"
+                value={makeable.length}
+                label="Makeable now"
+                tint={colors.success}
+                href={{ pathname: '/recipes', params: { filter: 'makeable' } }}
+              />
+              <StatTile
+                icon="trending-down"
+                value={lowBottles.length}
+                label="Running low"
+                tint={lowBottles.length > 0 ? colors.warning : undefined}
+                href={{ pathname: '/bar', params: { filter: 'low' } }}
+              />
+              <StatTile
+                icon="star-outline"
+                value={favoriteCount}
+                label="Favourites"
+                href={{ pathname: '/recipes', params: { filter: 'favorites' } }}
+              />
+            </View>
+
+            <SectionHeader
+              title="Tonight’s picks"
+              actionLabel="All recipes"
+              onAction={() => router.push('/recipes')}
             />
-          ) : (
-            <EmptyState title="Nothing matches" message="Try a different search or filter." />
-          )
-        }
-        renderItem={({ item }) => (
-          <BottleRow
-            bottle={item}
-            kind={item.ingredient_id ? index?.byId.get(item.ingredient_id)?.kind ?? null : null}
-            units={units}
+            {picks.length > 0 ? (
+              <FlatList
+                horizontal
+                data={picks}
+                keyExtractor={(item) => item.id}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.carousel}
+                renderItem={({ item }) => (
+                  <PickCard
+                    recipe={item}
+                    baseKindColor={colorForKind(
+                      item.base_ingredient_id
+                        ? index?.byId.get(item.base_ingredient_id)?.kind
+                        : null,
+                    )}
+                    ingredientName={(id, freeText) =>
+                      (id ? index?.byId.get(id)?.name : null) ?? freeText
+                    }
+                    onPress={() =>
+                      router.push({ pathname: '/recipe/[id]', params: { id: item.id } })
+                    }
+                  />
+                )}
+              />
+            ) : (
+              <View style={styles.emptyPicks}>
+                <MaterialCommunityIcons name="glass-cocktail" size={22} color={colors.textFaint} />
+                <Body style={styles.emptyPicksText}>
+                  {recipes && recipes.length > 0
+                    ? 'Nothing in your notebook is makeable right now — check your staples, or ask for something new.'
+                    : 'No recipes yet. Ask Flanagan for a cocktail built from what you have.'}
+                </Body>
+                <Button label="Ask for a cocktail" size="sm" onPress={() => router.push('/ask')} />
+              </View>
+            )}
+
+            {lowBottles.length > 0 ? (
+              <>
+                <SectionHeader
+                  title="Running low"
+                  actionLabel="Open bar"
+                  onAction={() => router.push({ pathname: '/bar', params: { filter: 'low' } })}
+                />
+                <View style={styles.lowCard}>
+                  {lowBottles.slice(0, 3).map((bottle, i) => (
+                    <LowRow
+                      key={bottle.id}
+                      bottle={bottle}
+                      isLast={i === Math.min(lowBottles.length, 3) - 1}
+                      onPress={() =>
+                        router.push({ pathname: '/bottle/[id]', params: { id: bottle.id } })
+                      }
+                    />
+                  ))}
+                  {lowBottles.length > 3 ? (
+                    <Muted style={styles.lowMore}>
+                      and {lowBottles.length - 3} more…
+                    </Muted>
+                  ) : null}
+                </View>
+              </>
+            ) : null}
+          </>
+        ) : (
+          <WelcomeCard
+            onScan={() => router.push('/scan')}
+            onStaples={() => router.push('/staples')}
           />
         )}
-      />
 
-      <Pressable
-        style={styles.fab}
-        onPress={() => router.push('/bottle/new')}
-        accessibilityRole="button"
-        accessibilityLabel="Add a bottle by hand"
-      >
-        <MaterialCommunityIcons name="plus" size={26} color={colors.bg} />
-      </Pressable>
+        <SectionHeader title="Quick actions" />
+        <View style={styles.actionGrid}>
+          <QuickAction
+            icon="barcode-scan"
+            title="Scan a bottle"
+            subtitle="Point at the barcode"
+            onPress={() => router.push('/scan')}
+          />
+          <QuickAction
+            icon="pencil-plus"
+            title="Add by hand"
+            subtitle="No barcode needed"
+            onPress={() => router.push('/bottle/new')}
+          />
+          <QuickAction
+            icon="notebook-plus-outline"
+            title="Write a recipe"
+            subtitle="Your own spec"
+            onPress={() => router.push('/recipe/new')}
+          />
+          <QuickAction
+            icon="basket-outline"
+            title="Staples"
+            subtitle="Limes, syrup, soda"
+            onPress={() => router.push('/staples')}
+          />
+        </View>
+      </ScrollView>
     </Screen>
   );
 }
 
-function IconButton({
+/** The AI entry point — the reason to open the app, so it gets the hero slot. */
+function AskHero({
+  onAsk,
+  onMood,
+}: {
+  onAsk: () => void;
+  onMood: (prompt: string) => void;
+}) {
+  return (
+    <LinearGradient
+      colors={gradients.hero}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0.9, y: 1 }}
+      style={styles.hero}
+    >
+      <View style={styles.heroLabelRow}>
+        <MaterialCommunityIcons name="creation" size={14} color={colors.accentSoft} />
+        <Label style={styles.heroLabel}>Ask Flanagan</Label>
+      </View>
+
+      <Heading style={styles.heroTitle}>What do you feel like tonight?</Heading>
+
+      <Pressable
+        onPress={onAsk}
+        accessibilityRole="button"
+        accessibilityLabel="Describe a cocktail"
+        style={({ pressed }) => [styles.heroInput, pressed && styles.pressed]}
+      >
+        <Muted style={styles.heroInputText} numberOfLines={1}>
+          “A gin-based dry cocktail with floral notes…”
+        </Muted>
+        <LinearGradient
+          colors={gradients.brand}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroInputButton}
+        >
+          <MaterialCommunityIcons name="arrow-right" size={18} color={colors.bg} />
+        </LinearGradient>
+      </Pressable>
+
+      <View style={styles.moodRow}>
+        {MOODS.map((mood) => (
+          <Pressable
+            key={mood.label}
+            onPress={() => onMood(mood.prompt)}
+            style={({ pressed }) => [styles.moodChip, pressed && styles.pressed]}
+          >
+            <MaterialCommunityIcons name={mood.icon} size={14} color={colors.accentSoft} />
+            <Body style={styles.moodLabel}>{mood.label}</Body>
+          </Pressable>
+        ))}
+      </View>
+    </LinearGradient>
+  );
+}
+
+function TopIconButton({
   icon,
   label,
   onPress,
 }: {
-  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  icon: IconName;
   label: string;
   onPress: () => void;
 }) {
@@ -180,93 +308,229 @@ function IconButton({
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={styles.iconButton}
+      style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
     >
       <MaterialCommunityIcons name={icon} size={20} color={colors.textMuted} />
     </Pressable>
   );
 }
 
-function BottleRow({
-  bottle,
-  kind,
-  units,
+function StatTile({
+  icon,
+  value,
+  label,
+  tint = colors.accentSoft,
+  href,
 }: {
-  bottle: Bottle;
-  kind: IngredientKind | null;
-  units: 'metric' | 'imperial';
+  icon: IconName;
+  value: number;
+  label: string;
+  tint?: string;
+  href: Href;
 }) {
-  const size = formatBottleSize(bottle.volume_ml, units);
-  const isOut = bottle.status !== 'in_stock';
-  const isLow = !isOut && bottle.fill_pct <= LOW_FILL_PCT;
-
-  const meta = [
-    bottle.brand,
-    size,
-    bottle.abv !== null ? `${bottle.abv}%` : null,
-  ].filter(Boolean) as string[];
-
+  const router = useRouter();
   return (
-    <Link href={{ pathname: '/bottle/[id]', params: { id: bottle.id } }} asChild>
-      <Pressable style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-        <View style={[styles.swatch, { backgroundColor: colorForKind(kind) }]} />
-
-        <View style={styles.rowBody}>
-          <Body style={[styles.rowTitle, isOut && styles.rowTitleOut]} numberOfLines={1}>
-            {bottle.name}
-          </Body>
-          {meta.length > 0 ? (
-            <Muted numberOfLines={1}>{meta.join(' · ')}</Muted>
-          ) : null}
-        </View>
-
-        <View style={styles.rowRight}>
-          {isOut ? (
-            <Muted style={{ color: colors.textFaint }}>Out</Muted>
-          ) : (
-            <>
-              <FillBar pct={bottle.fill_pct} low={isLow} />
-              {bottle.kind === 'staple' ? null : (
-                <Muted style={styles.fillLabel}>{bottle.fill_pct}%</Muted>
-              )}
-            </>
-          )}
-          <CategoryPill kind={kind} />
-        </View>
-      </Pressable>
-    </Link>
+    <Pressable
+      onPress={() => router.push(href)}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}`}
+      style={({ pressed }) => [styles.statTile, pressed && styles.pressed]}
+    >
+      <View style={styles.statIconWell}>
+        <MaterialCommunityIcons name={icon} size={16} color={tint} />
+      </View>
+      <Body style={styles.statValue}>{value}</Body>
+      <Muted style={styles.statLabel}>{label}</Muted>
+    </Pressable>
   );
 }
 
-function FillBar({ pct, low }: { pct: number; low: boolean }) {
+function SectionHeader({
+  title,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
   return (
-    <View style={styles.fillTrack}>
-      <View
-        style={[
-          styles.fillLevel,
-          { width: `${Math.max(pct, 2)}%`, backgroundColor: low ? colors.warning : colors.success },
-        ]}
-      />
+    <View style={styles.sectionHeader}>
+      <Heading>{title}</Heading>
+      {actionLabel && onAction ? (
+        <Pressable onPress={onAction} hitSlop={8} style={styles.sectionAction}>
+          <Body style={styles.sectionActionText}>{actionLabel}</Body>
+          <MaterialCommunityIcons name="chevron-right" size={16} color={colors.accent} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function PickCard({
+  recipe,
+  baseKindColor,
+  ingredientName,
+  onPress,
+}: {
+  recipe: RecipeWithIngredients;
+  baseKindColor: string;
+  ingredientName: (id: string | null, freeText: string | null) => string | null;
+  onPress: () => void;
+}) {
+  const lineNames = recipe.recipe_ingredients
+    .filter((line) => !line.is_garnish)
+    .map((line) => ingredientName(line.ingredient_id, line.free_text))
+    .filter((name): name is string => Boolean(name));
+
+  const specs = [recipe.method, recipe.glass].filter(Boolean).join(' · ');
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={recipe.title}
+      style={({ pressed }) => [styles.pickCard, pressed && styles.pressed]}
+    >
+      <View style={styles.pickTopRow}>
+        <View style={[styles.pickAccent, { backgroundColor: baseKindColor }]} />
+        {recipe.is_favorite ? (
+          <MaterialCommunityIcons name="star" size={16} color={colors.warning} />
+        ) : null}
+      </View>
+
+      <Body style={styles.pickTitle} numberOfLines={2}>
+        {recipe.title}
+      </Body>
+      {lineNames.length > 0 ? (
+        <Muted numberOfLines={2} style={styles.pickIngredients}>
+          {lineNames.join(' · ')}
+        </Muted>
+      ) : null}
+
+      <View style={styles.pickFooter}>
+        <View style={styles.makeableBadge}>
+          <MaterialCommunityIcons name="check" size={12} color={colors.success} />
+          <Body style={styles.makeableText}>Makeable</Body>
+        </View>
+        {specs ? (
+          <Muted style={styles.pickSpecs} numberOfLines={1}>
+            {specs}
+          </Muted>
+        ) : null}
+      </View>
+    </Pressable>
+  );
+}
+
+function LowRow({
+  bottle,
+  isLast,
+  onPress,
+}: {
+  bottle: Bottle;
+  isLast: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.lowRow,
+        !isLast && styles.lowRowBorder,
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={styles.lowRowBody}>
+        <Body style={styles.lowRowName} numberOfLines={1}>
+          {bottle.name}
+        </Body>
+        <View style={styles.lowTrack}>
+          <View style={[styles.lowLevel, { width: `${Math.max(bottle.fill_pct, 2)}%` }]} />
+        </View>
+      </View>
+      <Muted style={styles.lowPct}>{bottle.fill_pct}%</Muted>
+      <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textFaint} />
+    </Pressable>
+  );
+}
+
+function QuickAction({
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+    >
+      <View style={styles.actionIconWell}>
+        <MaterialCommunityIcons name={icon} size={18} color={colors.accentSoft} />
+      </View>
+      <Body style={styles.actionTitle}>{title}</Body>
+      <Muted style={styles.actionSubtitle}>{subtitle}</Muted>
+    </Pressable>
+  );
+}
+
+/** First-run state: no bottles yet, so stats and picks would be all zeroes. */
+function WelcomeCard({ onScan, onStaples }: { onScan: () => void; onStaples: () => void }) {
+  return (
+    <View style={styles.welcome}>
+      <View style={styles.welcomeIconWell}>
+        <MaterialCommunityIcons name="bottle-wine-outline" size={26} color={colors.accentSoft} />
+      </View>
+      <Heading style={styles.welcomeTitle}>Stock your bar</Heading>
+      <Muted style={styles.welcomeText}>
+        Scan a bottle’s barcode or add it by hand, then tick off your everyday staples — limes,
+        syrup, soda — so Flanagan knows what you can actually pour.
+      </Muted>
+      <View style={styles.welcomeActions}>
+        <Button label="Scan a bottle" onPress={onScan} />
+        <Button label="Set staples" variant="secondary" onPress={onStaples} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: spacing.lg,
+  content: {
+    padding: spacing.lg,
     paddingTop: spacing.sm,
+    paddingBottom: spacing.xxl * 2,
     gap: spacing.lg,
   },
-  headerRow: {
+  pressed: {
+    opacity: 0.7,
+  },
+  topRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
+    gap: spacing.md,
   },
-  headerActions: {
+  greetingBlock: {
+    flex: 1,
+    gap: 2,
+  },
+  greeting: {
+    ...typography.display,
+  },
+  topActions: {
     flexDirection: 'row',
     gap: spacing.sm,
+    paddingTop: spacing.xs,
   },
-  iconButton: {
+  topIconButton: {
     width: 38,
     height: 38,
     borderRadius: radius.md,
@@ -276,115 +540,300 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderSubtle,
   },
-  searchWrap: {
+
+  hero: {
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.accentDim,
+    padding: spacing.xl,
+    gap: spacing.lg,
+    ...shadows.card,
+  },
+  heroLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    gap: spacing.xs,
+  },
+  heroLabel: {
+    color: colors.accentSoft,
+  },
+  heroTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  heroInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: 'rgba(20, 16, 14, 0.65)',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
-    paddingHorizontal: spacing.md,
-    height: 44,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    paddingLeft: spacing.lg,
+    paddingRight: spacing.xs,
+    height: 52,
   },
-  searchInput: {
+  heroInputText: {
     flex: 1,
-    color: colors.text,
-    fontSize: 15,
+    fontSize: 14,
   },
-  filterRow: {
+  heroInputButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.raised,
+  },
+  moodRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
-    paddingBottom: spacing.xs,
   },
-  filterChip: {
-    paddingHorizontal: spacing.lg,
+  moodChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
+    backgroundColor: colors.accentGlow,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.accentDim,
+  },
+  moodLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.accentSoft,
+  },
+
+  statGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  statTile: {
+    flex: 1,
     backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderSubtle,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+    gap: 2,
   },
-  filterChipActive: {
-    backgroundColor: colors.accentDim,
-    borderColor: colors.accent,
+  statIconWell: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceRaised,
+    marginBottom: spacing.xs,
   },
-  filterLabel: {
-    ...typography.small,
-    color: colors.textMuted,
+  statValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
-  filterLabelActive: {
-    color: colors.accentSoft,
+  statLabel: {
+    fontSize: 11,
+    textAlign: 'center',
+  },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.sm,
+  },
+  sectionAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  sectionActionText: {
+    fontSize: 13,
     fontWeight: '600',
+    color: colors.accent,
   },
-  listContent: {
+
+  carousel: {
+    gap: spacing.md,
+    paddingRight: spacing.lg,
+  },
+  pickCard: {
+    width: 236,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSubtle,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    ...shadows.card,
+  },
+  pickTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pickAccent: {
+    width: 28,
+    height: 4,
+    borderRadius: radius.pill,
+  },
+  pickTitle: {
+    ...typography.subheading,
+    fontSize: 17,
+  },
+  pickIngredients: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  pickFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  makeableBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  makeableText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.success,
+  },
+  pickSpecs: {
+    fontSize: 11,
+    flexShrink: 1,
+  },
+
+  emptyPicks: {
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSubtle,
+    padding: spacing.xl,
+  },
+  emptyPicksText: {
+    textAlign: 'center',
+    color: colors.textMuted,
+    fontSize: 14,
+  },
+
+  lowCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSubtle,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: 96,
   },
-  emptyWrap: {
-    flexGrow: 1,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.borderSubtle,
-  },
-  row: {
+  lowRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.md,
   },
-  rowPressed: {
-    opacity: 0.6,
+  lowRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderSubtle,
   },
-  swatch: {
-    width: 4,
-    height: 36,
-    borderRadius: radius.sm,
-  },
-  rowBody: {
+  lowRowBody: {
     flex: 1,
-    gap: 2,
-  },
-  rowTitle: {
-    fontWeight: '600',
-  },
-  rowTitleOut: {
-    color: colors.textFaint,
-    textDecorationLine: 'line-through',
-  },
-  rowRight: {
-    alignItems: 'flex-end',
     gap: spacing.xs,
   },
-  fillTrack: {
-    width: 52,
+  lowRowName: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  lowTrack: {
     height: 4,
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceRaised,
     overflow: 'hidden',
   },
-  fillLevel: {
+  lowLevel: {
     height: '100%',
     borderRadius: radius.pill,
+    backgroundColor: colors.warning,
   },
-  fillLabel: {
-    fontSize: 11,
+  lowPct: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.warning,
   },
-  fab: {
-    position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.lg,
+  lowMore: {
+    fontSize: 12,
+    paddingVertical: spacing.md,
+  },
+
+  actionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  action: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSubtle,
+    padding: spacing.lg,
+    gap: 2,
+  },
+  actionIconWell: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accentGlow,
+    marginBottom: spacing.sm,
+  },
+  actionTitle: {
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  actionSubtitle: {
+    fontSize: 12,
+  },
+
+  welcome: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSubtle,
+    padding: spacing.xl,
+    ...shadows.card,
+  },
+  welcomeIconWell: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    backgroundColor: colors.accentGlow,
+    marginBottom: spacing.xs,
+  },
+  welcomeTitle: {
+    textAlign: 'center',
+  },
+  welcomeText: {
+    textAlign: 'center',
+    maxWidth: 300,
+  },
+  welcomeActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.md,
   },
 });
