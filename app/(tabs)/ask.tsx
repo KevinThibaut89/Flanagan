@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
@@ -50,6 +50,18 @@ export default function AskScreen() {
     suggest.mutate(trimmed);
   }
 
+  // Home's mood chips land here as /ask?q=…; run the prompt straight away.
+  const { q } = useLocalSearchParams<{ q?: string }>();
+  const lastPrefill = useRef<string | null>(null);
+  useEffect(() => {
+    if (typeof q === 'string' && q.trim() && q !== lastPrefill.current) {
+      lastPrefill.current = q;
+      ask(q);
+    }
+    // `ask` closes over stable mutation/setState handles only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
   const result = suggest.data;
 
   return (
@@ -60,6 +72,10 @@ export default function AskScreen() {
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
+            <View style={styles.headerBadge}>
+              <MaterialCommunityIcons name="creation" size={13} color={colors.accentSoft} />
+              <Label style={styles.headerBadgeText}>Ask Flanagan</Label>
+            </View>
             <Title>What do you feel like?</Title>
             <Muted>
               Answers come only from the {inStockCount}{' '}
@@ -230,6 +246,22 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: spacing.xs,
+  },
+  headerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentGlow,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.accentDim,
+    marginBottom: spacing.xs,
+  },
+  headerBadgeText: {
+    color: colors.accentSoft,
   },
   inputWrap: {
     gap: spacing.md,

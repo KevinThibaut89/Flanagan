@@ -18,6 +18,8 @@ export const colors = {
   accent: '#C87F3C',
   accentSoft: '#E5A96A',
   accentDim: '#4A3524',
+  /** Translucent copper wash for highlighted surfaces and icon wells. */
+  accentGlow: 'rgba(200, 127, 60, 0.14)',
 
   success: '#6FA86B',
   warning: '#D4A03C',
@@ -62,10 +64,44 @@ export const radius = {
   sm: 6,
   md: 10,
   lg: 16,
+  xl: 22,
   pill: 999,
 } as const;
 
+/**
+ * Gradient stops for `expo-linear-gradient`. Kept here so every gradient in
+ * the app comes from the same small set, tuned against `bg`.
+ */
+export const gradients = {
+  /** Warm candle-lit surface for the hero card on Home. */
+  hero: ['#38271A', '#241A13', '#1C1512'] as const,
+  /** Copper sheen for the brand mark and raised primary actions. */
+  brand: ['#E5A96A', '#C87F3C'] as const,
+  /** Barely-there lift for secondary cards. */
+  card: ['#241D1A', '#1F1917'] as const,
+} as const;
+
+/** Elevation presets — RN needs both the iOS shadow and Android elevation. */
+export const shadows = {
+  card: {
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  raised: {
+    shadowColor: '#C87F3C',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+} as const;
+
 export const typography = {
+  /** Oversized numerals and the Home greeting. */
+  display: { fontSize: 32, fontWeight: '800' as const, letterSpacing: -0.8 },
   title: { fontSize: 28, fontWeight: '700' as const, letterSpacing: -0.5 },
   heading: { fontSize: 20, fontWeight: '700' as const, letterSpacing: -0.3 },
   subheading: { fontSize: 16, fontWeight: '600' as const },

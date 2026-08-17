@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
@@ -26,6 +26,14 @@ export default function RecipesScreen() {
   const available = useAvailableIngredientIds();
 
   const [filter, setFilter] = useState<Filter>('all');
+
+  // Home deep-links into a pre-filtered view, e.g. /recipes?filter=makeable.
+  const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
+  useEffect(() => {
+    if (filterParam && FILTERS.some((f) => f.key === filterParam)) {
+      setFilter(filterParam as Filter);
+    }
+  }, [filterParam]);
 
   const visible = useMemo(() => {
     if (!recipes) return [];
