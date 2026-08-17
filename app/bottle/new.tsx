@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import {
@@ -10,6 +10,7 @@ import {
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { Screen } from '../../src/components/ui';
 import { useAddBottle } from '../../src/data/bottles';
+import { useClassifyBottle } from '../../src/data/classify';
 import type { BottleKind } from '../../src/types/database';
 
 /**
@@ -43,6 +44,57 @@ export default function NewBottleScreen() {
   }));
 
   const addBottle = useAddBottle();
+  const classify = useClassifyBottle();
+
+  // The id the classifier filled in, so the form can flag it as a guess. Cleared
+  // the moment the field no longer holds that exact value — a user's own pick,
+  // or their clearing of ours, is not a guess any more.
+  const [guessedId, setGuessedId] = useState<string | null>(null);
+
+  // Inputs already sent to the classifier. Stops the same name being asked about
+  // twice — including right after the user clears a guess they disagreed with,
+  // which must not be answered by immediately guessing again.
+  const attemptedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const name = values.name.trim();
+    // Too short to mean anything, already set (by hand, barcode, or us), or
+    // asked before — in every case the classifier has nothing to add.
+    if (name.length < 3 || values.ingredientId) return;
+
+    const brand = values.brand.trim();
+    const key = `${name.toLowerCase()}|${brand.toLowerCase()}`;
+    if (attemptedRef.current.has(key)) return;
+
+    // Wait for the typing to settle; one lookup per finished label beats one
+    // per keystroke.
+    const timer = setTimeout(() => {
+      attemptedRef.current.add(key);
+      classify.mutate(
+        { name, brand: brand || null },
+        {
+          onSuccess: (result) => {
+            if (!result.ingredient_id) return;
+            setValues((current) => {
+              // The answer is stale if they picked something or kept typing
+              // while it was in flight.
+              if (current.ingredientId || current.name.trim() !== name) return current;
+              return { ...current, ingredientId: result.ingredient_id };
+            });
+            // Safe even when the update above was a no-op: the "guessed" hint
+            // only shows while the field actually holds this id.
+            setGuessedId(result.ingredient_id);
+          },
+          // A failed guess is indistinguishable from no guess; stay quiet.
+          onError: () => {},
+        },
+      );
+    }, 900);
+    return () => clearTimeout(timer);
+    // `classify` is a fresh object every render; keying the effect on it would
+    // re-arm the timer constantly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.name, values.brand, values.ingredientId]);
 
   function handleSubmit() {
     addBottle.mutate(
@@ -78,6 +130,7 @@ export default function NewBottleScreen() {
       <BottleForm
         values={values}
         onChange={setValues}
+        ingredientGuessed={values.ingredientId !== null && values.ingredientId === guessedId}
         onSubmit={handleSubmit}
         submitLabel="Add to my bar"
         busy={addBottle.isPending}
