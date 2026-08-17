@@ -37,8 +37,8 @@ export default function SignIn() {
 
   async function handleVerify() {
     setError(null);
-    if (code.trim().length < 6) {
-      setError('Enter the six-digit code from the email.');
+    if (code.trim().length === 0) {
+      setError('Enter the code from the email.');
       return;
     }
     setBusy(true);
@@ -82,7 +82,7 @@ export default function SignIn() {
                 returnKeyType="go"
                 onSubmitEditing={handleSendCode}
                 error={error}
-                hint="We’ll email you a six-digit sign-in code."
+                hint="We’ll email you a sign-in code."
               />
               <Button label="Send code" onPress={handleSendCode} loading={busy} />
             </View>
@@ -92,15 +92,15 @@ export default function SignIn() {
                 Enter the code we sent to <Body style={styles.email}>{email}</Body>.
               </Body>
               <TextField
-                label="Six-digit code"
+                label="Sign-in code"
                 value={code}
                 onChangeText={setCode}
-                placeholder="123456"
+                placeholder="Enter the code"
                 keyboardType="number-pad"
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 textContentType="oneTimeCode"
-                maxLength={6}
+                maxLength={10}
                 returnKeyType="go"
                 onSubmitEditing={handleVerify}
                 error={error}
