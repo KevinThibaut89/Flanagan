@@ -88,18 +88,27 @@ npx expo start
 Barcode scanning needs real camera hardware, so use a device rather than a
 simulator.
 
-> **The SDK version is pinned deliberately.** This project targets **Expo SDK
-> 56**, not the current `latest`. Expo Go supports exactly one SDK — the one its
-> binary was built against — so a project one SDK ahead of the installed Expo Go
-> is refused outright with *"the project you requested requires a newer version
-> of Expo Go"*, and updating Expo Go does not always fix it: if the newest client
-> needs a newer iOS than the phone runs, the App Store quietly serves the last
-> compatible build instead.
+> **Expo Go supports exactly one SDK version** — the one its binary was built
+> against — so the project's SDK and the installed Expo Go have to match in both
+> directions. Being one SDK *behind* the client is refused just as flatly as being
+> one ahead. This project therefore tracks the current SDK (**57**), which is what
+> a fresh App Store install of Expo Go targets. Change SDK only with
+> `npx expo install expo@^<major> --fix`, which moves every Expo package
+> together, and `npx expo install --check` to confirm the set matches the pin.
 >
-> So don't bump `expo` to `latest` casually. Change SDK with `npx expo install
-> expo@^<major> --fix`, which moves every Expo package together, and check the
-> phone can still open it before committing. `npx expo install --check` reports
-> whether the current dependency set matches the pinned SDK.
+> When Expo Go refuses to open the project, the message is not always the whole
+> story — the device can be reaching a stale dev server or a cached project
+> entry, which looks identical to a version mismatch. Restart cleanly before
+> believing it:
+>
+> ```sh
+> pkill -f "expo start" || true      # a server left on :8081 serves the OLD config
+> npx expo start -c                  # -c clears Metro's cache
+> ```
+>
+> then force-quit Expo Go, and open the project by typing the
+> `exp://<LAN-IP>:8081` URL into Expo Go by hand rather than scanning — that
+> bypasses stale QR codes and the "Recently opened" list in one move.
 
 ### Re-applying from scratch
 
