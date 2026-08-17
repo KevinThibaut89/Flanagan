@@ -1,5 +1,5 @@
 /**
- * The JSON Schema Claude is constrained to. It mirrors the `recipes` and
+ * The JSON Schema the model is constrained to. It mirrors the `recipes` and
  * `recipe_ingredients` tables closely enough that a validated response can be
  * mapped to rows without interpretation — which is the whole point: an AI
  * suggestion you save and a recipe you type by hand end up identical.
@@ -9,9 +9,12 @@
  * is expressed in — so validation is a set membership test and mapping is a
  * dictionary lookup.
  *
- * Every field is required and non-nullable. Structured outputs support a narrow
- * slice of JSON Schema, and "" / [] / 0 are unambiguous enough for the few
- * fields that can be genuinely absent.
+ * Every field is required and non-nullable, and every object sets
+ * `additionalProperties: false`. That is what OpenAI's strict structured outputs
+ * demand, and it costs nothing here: "" / [] / 0 are unambiguous enough for the
+ * few fields that can be genuinely absent. Note the absence of `minItems` /
+ * `maxItems` — strict mode does not support them, so the one-to-three bound on
+ * `recipes` lives in its description and is not enforced by the schema.
  */
 
 export const MEASURE_UNITS = [
