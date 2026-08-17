@@ -1,14 +1,16 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { Link, Stack, useRouter } from 'expo-router';
 
-import { Button } from '../../src/components/Button';
-import { RecipeCard } from '../../src/components/RecipeCard';
-import { Body, EmptyState, ErrorState, Loading, Muted, Screen, Title } from '../../src/components/ui';
-import { useAvailableIngredientIds } from '../../src/data/bottles';
-import { canMake, useRecipes } from '../../src/data/recipes';
-import { colors, radius, spacing, typography } from '../../src/theme';
+import { Button } from '../../../src/components/Button';
+import { Icon } from '../../../src/components/Icon';
+import { RecipeCard } from '../../../src/components/RecipeCard';
+import { Body, EmptyState, ErrorState, Loading, Muted, Screen } from '../../../src/components/ui';
+import { useAvailableIngredientIds } from '../../../src/data/bottles';
+import { canMake, useRecipes } from '../../../src/data/recipes';
+import { select } from '../../../src/lib/haptics';
+import { colors, radius, spacing, typography } from '../../../src/theme';
 
 type Filter = 'all' | 'makeable' | 'mine' | 'suggested' | 'favorites';
 
@@ -22,6 +24,7 @@ const FILTERS: Array<{ key: Filter; label: string }> = [
 
 export default function RecipesScreen() {
   const router = useRouter();
+  const tabBarHeight = useBottomTabBarHeight();
   const { data: recipes, isLoading, error, refetch, isRefetching } = useRecipes();
   const available = useAvailableIngredientIds();
 
@@ -50,52 +53,82 @@ export default function RecipesScreen() {
     [recipes, available],
   );
 
-  if (isLoading) return <Loading label="Opening your notebook…" />;
+  const screenOptions = (
+    <Stack.Screen
+      options={{
+        headerRight: () => (
+          <Pressable
+            onPress={() => router.push('/recipe/new')}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Write a recipe"
+            style={({ pressed }) => pressed && styles.headerButtonPressed}
+          >
+            <Icon name="add" size={22} color={colors.accent} />
+          </Pressable>
+        ),
+      }}
+    />
+  );
+
+  if (isLoading) {
+    return (
+      <Screen edges={[]}>
+        {screenOptions}
+        <Loading label="Opening your notebook…" />
+      </Screen>
+    );
+  }
   if (error) {
     return (
-      <Screen>
+      <Screen edges={[]}>
+        {screenOptions}
         <ErrorState error={error} action={<Button label="Try again" onPress={() => refetch()} />} />
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <View>
-            <Title>Recipes</Title>
-            <Muted>
-              {recipes?.length ?? 0} saved · {makeableCount} you can make now
-            </Muted>
-          </View>
-        </View>
-
-        <FlatList
-          horizontal
-          data={FILTERS}
-          keyExtractor={(item) => item.key}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => setFilter(item.key)}
-              style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
-            >
-              <Body style={[styles.filterLabel, filter === item.key && styles.filterLabelActive]}>
-                {item.label}
-              </Body>
-            </Pressable>
-          )}
-        />
-      </View>
+    <Screen edges={[]}>
+      {screenOptions}
 
       <FlatList
         data={visible}
         keyExtractor={(item) => item.id}
         refreshing={isRefetching}
         onRefresh={refetch}
-        contentContainerStyle={visible.length === 0 ? styles.emptyWrap : styles.listContent}
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={[
+          visible.length === 0 ? styles.emptyWrap : styles.listContent,
+          { paddingBottom: (Platform.OS === 'ios' ? tabBarHeight : 0) + spacing.xl },
+        ]}
+        ListHeaderComponent={
+          <View style={styles.listHeader}>
+            <Muted>
+              {recipes?.length ?? 0} saved · {makeableCount} you can make now
+            </Muted>
+            <FlatList
+              horizontal
+              data={FILTERS}
+              keyExtractor={(item) => item.key}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterRow}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => {
+                    select();
+                    setFilter(item.key);
+                  }}
+                  style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
+                >
+                  <Body style={[styles.filterLabel, filter === item.key && styles.filterLabelActive]}>
+                    {item.label}
+                  </Body>
+                </Pressable>
+              )}
+            />
+          </View>
+        }
         ListEmptyComponent={
           recipes && recipes.length === 0 ? (
             <EmptyState
@@ -122,80 +155,48 @@ export default function RecipesScreen() {
           </Link>
         )}
       />
-
-      <Pressable
-        style={styles.fab}
-        onPress={() => router.push('/recipe/new')}
-        accessibilityRole="button"
-        accessibilityLabel="Write a recipe"
-      >
-        <MaterialCommunityIcons name="plus" size={26} color={colors.bg} />
-      </Pressable>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    gap: spacing.lg,
+  headerButtonPressed: {
+    opacity: 0.6,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+  listHeader: {
+    gap: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   filterRow: {
     gap: spacing.sm,
-    paddingBottom: spacing.xs,
   },
   filterChip: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
+    backgroundColor: colors.fillSubtle,
   },
   filterChipActive: {
     backgroundColor: colors.accentDim,
-    borderColor: colors.accent,
   },
   filterLabel: {
-    ...typography.small,
+    ...typography.subheadline,
     color: colors.textMuted,
   },
   filterLabelActive: {
-    color: colors.accentSoft,
+    color: colors.accent,
     fontWeight: '600',
   },
   listContent: {
-    padding: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: 96,
+    paddingHorizontal: spacing.lg,
     gap: spacing.md,
   },
   emptyWrap: {
     flexGrow: 1,
+    paddingHorizontal: spacing.lg,
   },
   pressed: {
     opacity: 0.7,
-  },
-  fab: {
-    position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
   },
 });

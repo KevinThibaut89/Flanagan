@@ -1,11 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { BlurView } from 'expo-blur';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
+import { Icon } from '../../src/components/Icon';
 import { Body, Heading, Muted, Screen } from '../../src/components/ui';
 import { lookupBarcode } from '../../src/data/products';
 import { colors, radius, spacing } from '../../src/theme';
@@ -107,7 +108,7 @@ export default function ScanScreen() {
     return (
       <Screen>
         <View style={styles.permission}>
-          <MaterialCommunityIcons name="barcode-scan" size={48} color={colors.accent} />
+          <Icon name="scan" size={48} color={colors.accent} />
           <Heading style={styles.centered}>Scan a bottle</Heading>
           <Muted style={styles.centered}>
             Flanagan needs the camera to read barcodes. It only looks at barcodes — nothing is
@@ -138,7 +139,7 @@ export default function ScanScreen() {
       <View style={styles.overlay} pointerEvents="box-none">
         <View style={styles.reticle} />
 
-        <View style={styles.panel}>
+        <BlurView tint="systemChromeMaterialDark" intensity={80} style={styles.panel}>
           {status.kind === 'scanning' ? (
             <Body style={styles.centered}>Point the camera at the barcode.</Body>
           ) : null}
@@ -177,17 +178,19 @@ export default function ScanScreen() {
               />
             </View>
           ) : null}
-        </View>
+        </BlurView>
       </View>
 
       <Pressable
-        style={styles.manual}
+        style={styles.manualWrap}
         onPress={() => router.push('/bottle/new')}
         accessibilityRole="button"
         accessibilityLabel="Add a bottle by hand"
       >
-        <MaterialCommunityIcons name="pencil-outline" size={18} color={colors.text} />
-        <Body>By hand</Body>
+        <BlurView tint="systemChromeMaterialDark" intensity={80} style={styles.manual}>
+          <Icon name="edit" size={18} color={colors.text} />
+          <Body>By hand</Body>
+        </BlurView>
       </Pressable>
     </View>
   );
@@ -205,19 +208,22 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.xxl,
   },
+  // iOS camera chrome is white, not tinted.
   reticle: {
     width: '80%',
     aspectRatio: 1.9,
     borderWidth: 2,
-    borderColor: colors.accent,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: radius.lg,
   },
   panel: {
-    backgroundColor: colors.scrim,
     borderRadius: radius.lg,
+    overflow: 'hidden',
     padding: spacing.lg,
     gap: spacing.md,
     alignSelf: 'stretch',
+    // expo-blur doesn't blur on Android; fall back to the scrim colour.
+    backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.scrim,
   },
   panelBlock: {
     gap: spacing.md,
@@ -232,16 +238,19 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.lg,
   },
-  manual: {
+  manualWrap: {
     position: 'absolute',
     top: spacing.xxl + spacing.lg,
     right: spacing.lg,
+  },
+  manual: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: colors.scrim,
+    overflow: 'hidden',
+    backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.scrim,
   },
 });

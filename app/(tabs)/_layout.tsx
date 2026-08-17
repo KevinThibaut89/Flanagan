@@ -1,15 +1,13 @@
-import type { ComponentProps } from 'react';
+import { Platform, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { StyleSheet, type ColorValue } from 'react-native';
+import { BlurView } from 'expo-blur';
 
+import { Icon, type IconName } from '../../src/components/Icon';
 import { colors } from '../../src/theme';
 
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
-
 function icon(name: IconName) {
-  return ({ color, size }: { color: ColorValue; size: number }) => (
-    <MaterialCommunityIcons name={name} color={color as string} size={size} />
+  return ({ color, size }: { color: string; size: number }) => (
+    <Icon name={name} color={color} size={size} />
   );
 }
 
@@ -20,31 +18,39 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textFaint,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.borderSubtle,
-          borderTopWidth: StyleSheet.hairlineWidth,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
         sceneStyle: { backgroundColor: colors.bg },
+        // iOS floats a translucent bar over the content; Android keeps an
+        // opaque one, since BlurView there is just a tint.
+        ...(Platform.OS === 'ios'
+          ? {
+              tabBarStyle: {
+                position: 'absolute' as const,
+                backgroundColor: 'transparent',
+                borderTopColor: colors.border,
+                borderTopWidth: StyleSheet.hairlineWidth,
+              },
+              tabBarBackground: () => (
+                <BlurView
+                  tint="systemChromeMaterialDark"
+                  intensity={100}
+                  style={StyleSheet.absoluteFill}
+                />
+              ),
+            }
+          : {
+              tabBarStyle: {
+                backgroundColor: colors.surface,
+                borderTopColor: colors.borderSubtle,
+                borderTopWidth: StyleSheet.hairlineWidth,
+              },
+            }),
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{ title: 'Bar', tabBarIcon: icon('bottle-wine-outline') }}
-      />
-      <Tabs.Screen
-        name="scan"
-        options={{ title: 'Scan', tabBarIcon: icon('barcode-scan') }}
-      />
-      <Tabs.Screen
-        name="ask"
-        options={{ title: 'Ask', tabBarIcon: icon('glass-cocktail') }}
-      />
-      <Tabs.Screen
-        name="recipes"
-        options={{ title: 'Recipes', tabBarIcon: icon('notebook-outline') }}
-      />
+      <Tabs.Screen name="(bar)" options={{ title: 'Bar', tabBarIcon: icon('bar') }} />
+      <Tabs.Screen name="scan" options={{ title: 'Scan', tabBarIcon: icon('scan') }} />
+      <Tabs.Screen name="ask" options={{ title: 'Ask', tabBarIcon: icon('ask') }} />
+      <Tabs.Screen name="(recipes)" options={{ title: 'Recipes', tabBarIcon: icon('recipes') }} />
     </Tabs>
   );
 }

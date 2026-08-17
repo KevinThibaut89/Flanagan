@@ -9,9 +9,9 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
+import { Icon } from '../../src/components/Icon';
 import { RecipeIngredientList } from '../../src/components/RecipeIngredientList';
 import { Body, Label, Muted, Screen, Title } from '../../src/components/ui';
 import { useAvailableIngredientIds, useBottles } from '../../src/data/bottles';
@@ -106,7 +106,7 @@ export default function AskScreen() {
 
           {suggest.error ? (
             <View style={styles.notice}>
-              <MaterialCommunityIcons name="alert-outline" size={18} color={colors.danger} />
+              <Icon name="alert" size={18} color={colors.danger} />
               <Body style={styles.noticeText}>
                 {suggest.error instanceof Error ? suggest.error.message : 'That did not work.'}
               </Body>
@@ -115,7 +115,7 @@ export default function AskScreen() {
 
           {result?.message ? (
             <View style={styles.notice}>
-              <MaterialCommunityIcons name="information-outline" size={18} color={colors.textMuted} />
+              <Icon name="info" size={18} color={colors.textMuted} />
               <Body style={styles.noticeText}>{result.message}</Body>
             </View>
           ) : null}
@@ -238,11 +238,9 @@ const styles = StyleSheet.create({
     minHeight: 88,
     padding: spacing.lg,
     backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
     borderRadius: radius.md,
     color: colors.text,
-    fontSize: 16,
+    fontSize: 17,
     lineHeight: 22,
     textAlignVertical: 'top',
   },
@@ -256,9 +254,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
+    backgroundColor: colors.fillSubtle,
   },
   exampleLabel: {
     color: colors.textMuted,
@@ -269,8 +265,6 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
   },
   noticeText: {
     flex: 1,
@@ -281,8 +275,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
     padding: spacing.lg,
     gap: spacing.md,
   },

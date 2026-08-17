@@ -20,7 +20,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
         ref={ref}
         placeholderTextColor={colors.textFaint}
         selectionColor={colors.accent}
-        style={[styles.input, error ? styles.inputError : null, style]}
+        style={[styles.input, style]}
         {...props}
       />
       {error ? (
@@ -37,29 +37,25 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   label: {
-    ...typography.tiny,
-    color: colors.textFaint,
+    ...typography.footnote,
+    color: colors.textMuted,
   },
+  // iOS form field: borderless surface, errors reported in text only.
   input: {
-    minHeight: 48,
+    minHeight: 44,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
     borderRadius: radius.md,
     color: colors.text,
-    fontSize: 16,
-  },
-  inputError: {
-    borderColor: colors.danger,
+    fontSize: 17,
   },
   hint: {
-    ...typography.small,
+    ...typography.footnote,
     color: colors.textFaint,
   },
   error: {
-    ...typography.small,
+    ...typography.footnote,
     color: colors.danger,
   },
 });

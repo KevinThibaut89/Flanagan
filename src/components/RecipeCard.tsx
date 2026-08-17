@@ -1,11 +1,11 @@
 import { StyleSheet, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { colorForKind } from './CategoryPill';
+import { Icon, type IconName } from './Icon';
 import { Body, Heading, Muted } from './ui';
 import { useIngredientIndex } from '../data/ingredients';
 import { canMake, missingIngredients, type RecipeWithIngredients } from '../data/recipes';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, radius, spacing, tintOf, typography } from '../theme';
 
 /**
  * The summary of a recipe used in the library list and in AI results. It leads
@@ -42,20 +42,20 @@ export function RecipeCard({
         </View>
 
         {recipe.is_favorite ? (
-          <MaterialCommunityIcons name="star" size={18} color={colors.warning} />
+          <Icon name="starFill" size={18} color={colors.warning} />
         ) : null}
       </View>
 
       <View style={styles.tagRow}>
         {makeable ? (
-          <Tag label="Makeable now" color={colors.success} icon="check-circle-outline" />
+          <Tag label="Makeable now" color={colors.success} icon="checkCircle" />
         ) : (
           <Tag
             label={
               missing.length === 1 ? 'Missing 1 thing' : `Missing ${missing.length} things`
             }
-            color={colors.textFaint}
-            icon="cart-outline"
+            color={colors.textMuted}
+            icon="cart"
           />
         )}
 
@@ -78,11 +78,11 @@ function Tag({
 }: {
   label: string;
   color: string;
-  icon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  icon?: IconName;
 }) {
   return (
-    <View style={[styles.tag, { borderColor: color }]}>
-      {icon ? <MaterialCommunityIcons name={icon} size={12} color={color} /> : null}
+    <View style={[styles.tag, { backgroundColor: tintOf(color) }]}>
+      {icon ? <Icon name={icon} size={12} color={color} /> : null}
       <Body style={[styles.tagLabel, { color }]}>{label}</Body>
     </View>
   );
@@ -91,9 +91,7 @@ function Tag({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
     padding: spacing.lg,
     gap: spacing.md,
   },
@@ -118,11 +116,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.pill,
-    borderWidth: 1,
   },
   tagLabel: {
-    ...typography.small,
-    fontSize: 12,
+    ...typography.caption1,
     fontWeight: '600',
   },
 });

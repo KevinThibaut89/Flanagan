@@ -7,6 +7,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { tap } from '../lib/haptics';
 import { colors, radius, spacing } from '../theme';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -35,7 +36,10 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: isInert, busy: loading }}
-      onPress={onPress}
+      onPress={() => {
+        if (variant === 'primary' || variant === 'danger') tap();
+        onPress();
+      }}
       disabled={isInert}
       style={({ pressed }) => [
         styles.base,
@@ -57,38 +61,31 @@ export function Button({
   );
 }
 
+// iOS button styles: filled, gray, and plain — no borders anywhere.
 const variants: Record<Variant, { container: ViewStyle; text: { color: string } }> = {
   primary: {
     container: { backgroundColor: colors.accent },
-    text: { color: colors.bg },
+    text: { color: '#FFFFFF' },
   },
   secondary: {
-    container: {
-      backgroundColor: colors.surfaceRaised,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
-    },
-    text: { color: colors.text },
+    container: { backgroundColor: colors.fill },
+    text: { color: colors.accent },
   },
   ghost: {
     container: { backgroundColor: 'transparent' },
     text: { color: colors.accent },
   },
   danger: {
-    container: {
-      backgroundColor: 'transparent',
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.danger,
-    },
+    container: { backgroundColor: colors.fill },
     text: { color: colors.danger },
   },
 };
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 48,
+    minHeight: 50,
     paddingHorizontal: spacing.xl,
-    borderRadius: radius.md,
+    borderRadius: radius.control,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -98,14 +95,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   label: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
   },
   labelSm: {
-    fontSize: 14,
+    fontSize: 15,
   },
   pressed: {
-    opacity: 0.75,
+    opacity: 0.7,
   },
   inert: {
     opacity: 0.45,

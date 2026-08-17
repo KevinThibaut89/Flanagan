@@ -1,53 +1,83 @@
 /**
  * A single dark theme. A bar app is used in dim rooms at night, so there is no
  * light variant to maintain — every colour here is tuned against `bg`.
+ *
+ * Values follow the iOS system dark palette (systemBackground, systemGray6,
+ * separator, label hierarchy, semantic colours), with copper kept as the one
+ * tint colour.
  */
 
 export const colors = {
-  bg: '#14100E',
-  surface: '#1F1917',
-  surfaceRaised: '#2A2321',
-  border: '#3A302C',
-  borderSubtle: '#2C2422',
+  /** systemBackground */
+  bg: '#000000',
+  /** secondarySystemBackground / systemGray6 */
+  surface: '#1C1C1E',
+  /** tertiarySystemBackground / systemGray5 */
+  surfaceRaised: '#2C2C2E',
+  /** separator */
+  border: 'rgba(84, 84, 88, 0.65)',
+  borderSubtle: 'rgba(84, 84, 88, 0.36)',
 
-  text: '#F5EDE6',
-  textMuted: '#A89A90',
-  textFaint: '#75675F',
+  /** systemFill — gray button backgrounds. */
+  fill: 'rgba(120, 120, 128, 0.36)',
+  /** tertiarySystemFill — search fields, chips. */
+  fillSubtle: 'rgba(120, 120, 128, 0.24)',
 
-  /** Copper. Primary actions, active tabs, links. */
-  accent: '#C87F3C',
+  /** label */
+  text: '#FFFFFF',
+  /** secondaryLabel */
+  textMuted: 'rgba(235, 235, 245, 0.6)',
+  /** tertiaryLabel */
+  textFaint: 'rgba(235, 235, 245, 0.3)',
+
+  /** Copper. The app's single tint colour: primary actions, active tabs, links. */
+  accent: '#D28E4D',
   accentSoft: '#E5A96A',
-  accentDim: '#4A3524',
+  /** Tint wash for selected chips and highlighted fills. */
+  accentDim: 'rgba(210, 142, 77, 0.18)',
 
-  success: '#6FA86B',
-  warning: '#D4A03C',
-  danger: '#C4574B',
+  /** systemGreen / systemOrange / systemRed (dark) */
+  success: '#30D158',
+  warning: '#FF9F0A',
+  danger: '#FF453A',
 
   /** Translucent overlay for modals and scanner chrome. */
-  scrim: 'rgba(10, 7, 6, 0.75)',
+  scrim: 'rgba(0, 0, 0, 0.6)',
 } as const;
 
 // Category accents, used for bottle type pills and recipe base-spirit tags.
+// Hues sit in the iOS system-colour range so they stay vivid on pure black.
 export const categoryColors: Record<string, string> = {
-  gin: '#8FB8C9',
-  whisky: '#C08A4A',
-  rum: '#B5763F',
-  vodka: '#B9C3C7',
-  tequila: '#C3B36A',
-  mezcal: '#9A8B55',
-  brandy: '#B06A3E',
-  liqueur: '#B07FA8',
-  vermouth: '#A46B72',
-  amaro: '#8B5A52',
-  bitters: '#9C4A42',
-  wine: '#8E4A5C',
-  beer: '#C9A24A',
-  mixer: '#6E8B93',
-  syrup: '#B08A5E',
-  juice: '#C08658',
-  garnish: '#7C9A63',
-  other: '#8A7C74',
+  spirit: '#D28E4D',
+  gin: '#64D2FF',
+  whisky: '#FF9F0A',
+  rum: '#AC8E68',
+  vodka: '#AEAEB2',
+  tequila: '#FFD60A',
+  mezcal: '#B8A24A',
+  brandy: '#E97C35',
+  liqueur: '#BF5AF2',
+  vermouth: '#FF6482',
+  fortified: '#E06A85',
+  amaro: '#D0665A',
+  bitters: '#FF453A',
+  wine: '#FF375F',
+  beer: '#D9A62E',
+  mixer: '#63E6E2',
+  syrup: '#D9995A',
+  juice: '#FFB340',
+  garnish: '#30D158',
+  other: '#98989D',
 };
+
+/**
+ * An ~18% wash of a category colour, for iOS-style tinted capsules.
+ * Only 6-digit hex colours can take the alpha suffix; anything else gets the
+ * neutral tertiary fill.
+ */
+export function tintOf(color: string): string {
+  return color.startsWith('#') && color.length === 7 ? `${color}2E` : colors.fillSubtle;
+}
 
 export const spacing = {
   xs: 4,
@@ -59,17 +89,37 @@ export const spacing = {
 } as const;
 
 export const radius = {
-  sm: 6,
+  sm: 8,
+  /** Inset-grouped cards, search fields. */
   md: 10,
-  lg: 16,
+  /** Buttons and other controls. */
+  control: 12,
+  /** Modals and floating panels. */
+  lg: 14,
   pill: 999,
 } as const;
 
+// The iOS type scale. SF applies its own optical tracking, so no manual
+// letterSpacing. Legacy aliases keep older call sites on the same scale.
 export const typography = {
-  title: { fontSize: 28, fontWeight: '700' as const, letterSpacing: -0.5 },
-  heading: { fontSize: 20, fontWeight: '700' as const, letterSpacing: -0.3 },
-  subheading: { fontSize: 16, fontWeight: '600' as const },
-  body: { fontSize: 15, fontWeight: '400' as const },
+  largeTitle: { fontSize: 34, fontWeight: '700' as const },
+  title1: { fontSize: 28, fontWeight: '700' as const },
+  title2: { fontSize: 22, fontWeight: '700' as const },
+  title3: { fontSize: 20, fontWeight: '600' as const },
+  headline: { fontSize: 17, fontWeight: '600' as const },
+  body17: { fontSize: 17, fontWeight: '400' as const },
+  callout: { fontSize: 16, fontWeight: '400' as const },
+  subheadline: { fontSize: 15, fontWeight: '400' as const },
+  footnote: { fontSize: 13, fontWeight: '400' as const },
+  caption1: { fontSize: 12, fontWeight: '400' as const },
+  caption2: { fontSize: 11, fontWeight: '400' as const },
+
+  // Legacy aliases.
+  title: { fontSize: 28, fontWeight: '700' as const },
+  heading: { fontSize: 22, fontWeight: '700' as const },
+  subheading: { fontSize: 17, fontWeight: '600' as const },
+  body: { fontSize: 17, fontWeight: '400' as const },
   small: { fontSize: 13, fontWeight: '400' as const },
-  tiny: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.6 },
+  /** Uppercase grouped-section headers. */
+  tiny: { fontSize: 13, fontWeight: '400' as const },
 } as const;

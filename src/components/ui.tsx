@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, radius, spacing, tintOf, typography } from '../theme';
 
 /** Text primitives forward the rest of TextProps so callers can set
  * `numberOfLines`, accessibility props, and so on. */
@@ -93,13 +93,7 @@ export function Pill({
   filled?: boolean;
 }) {
   return (
-    <View
-      style={[
-        styles.pill,
-        { borderColor: color },
-        filled && { backgroundColor: color },
-      ]}
-    >
+    <View style={[styles.pill, { backgroundColor: filled ? color : tintOf(color) }]}>
       <Text style={[styles.pillText, { color: filled ? colors.bg : color }]}>{children}</Text>
     </View>
   );
@@ -112,7 +106,7 @@ export function Divider({ style }: { style?: StyleProp<ViewStyle> }) {
 export function Loading({ label }: { label?: string }) {
   return (
     <View style={styles.centered}>
-      <ActivityIndicator color={colors.accent} />
+      <ActivityIndicator color={colors.textMuted} />
       {label ? <Muted style={{ marginTop: spacing.md }}>{label}</Muted> : null}
     </View>
   );
@@ -156,11 +150,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
+  // iOS inset-grouped cards are borderless: surface colour alone does the work.
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
     padding: spacing.lg,
   },
   title: {
@@ -177,19 +170,19 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   muted: {
-    ...typography.small,
+    ...typography.subheadline,
     color: colors.textMuted,
     lineHeight: 20,
   },
+  // iOS grouped-section header: 13pt regular, uppercase, secondary colour.
   label: {
-    ...typography.tiny,
-    color: colors.textFaint,
+    ...typography.footnote,
+    color: colors.textMuted,
   },
   pill: {
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     borderRadius: radius.pill,
-    borderWidth: 1,
     alignSelf: 'flex-start',
   },
   pillText: {

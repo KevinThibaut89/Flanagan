@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Pressable } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import {
   BottleForm,
@@ -10,9 +9,10 @@ import {
   type BottleFormValues,
 } from '../../src/components/BottleForm';
 import { Button } from '../../src/components/Button';
-import { ScreenHeader } from '../../src/components/ScreenHeader';
+import { Icon } from '../../src/components/Icon';
 import { ErrorState, Loading, Screen } from '../../src/components/ui';
 import { useBottle, useDeleteBottle, useUpdateBottle } from '../../src/data/bottles';
+import { warn } from '../../src/lib/haptics';
 import { colors } from '../../src/theme';
 
 export default function BottleDetailScreen() {
@@ -69,6 +69,7 @@ export default function BottleDetailScreen() {
   }
 
   function confirmDelete() {
+    warn();
     Alert.alert(
       'Remove this bottle?',
       'It disappears from your bar and from what you can make. This cannot be undone — if you have just finished it, set the status to Finished instead.',
@@ -92,8 +93,8 @@ export default function BottleDetailScreen() {
   if (isLoading) return <Loading />;
   if (error || !bottle) {
     return (
-      <Screen>
-        <ScreenHeader title="Bottle" />
+      <Screen edges={[]}>
+        <Stack.Screen options={{ title: 'Bottle' }} />
         <ErrorState
           error={error ?? new Error('That bottle no longer exists.')}
           action={<Button label="Try again" onPress={() => refetch()} />}
@@ -103,15 +104,16 @@ export default function BottleDetailScreen() {
   }
 
   return (
-    <Screen edges={['top']}>
-      <ScreenHeader
-        title={bottle.name}
-        subtitle={bottle.kind === 'staple' ? 'Staple' : bottle.brand}
-        action={
-          <Pressable onPress={confirmDelete} hitSlop={10} accessibilityLabel="Remove bottle">
-            <MaterialCommunityIcons name="trash-can-outline" size={22} color={colors.danger} />
-          </Pressable>
-        }
+    <Screen edges={[]}>
+      <Stack.Screen
+        options={{
+          title: bottle.name,
+          headerRight: () => (
+            <Pressable onPress={confirmDelete} hitSlop={10} accessibilityLabel="Remove bottle">
+              <Icon name="delete" size={22} color={colors.danger} />
+            </Pressable>
+          ),
+        }}
       />
       <BottleForm
         values={values}

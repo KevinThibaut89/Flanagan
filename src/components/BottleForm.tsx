@@ -5,6 +5,7 @@ import { Button } from './Button';
 import { IngredientPicker } from './IngredientPicker';
 import { TextField } from './TextField';
 import { Body, Label, Muted } from './ui';
+import { select } from '../lib/haptics';
 import { ML_PER_OZ } from '../lib/units';
 import { useUnits } from '../providers/preferences';
 import { colors, radius, spacing } from '../theme';
@@ -228,7 +229,10 @@ function Chip({
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        select();
+        onPress();
+      }}
       style={[styles.chip, active && styles.chipActive]}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
@@ -275,20 +279,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
+    backgroundColor: colors.fillSubtle,
   },
   chipActive: {
     backgroundColor: colors.accentDim,
-    borderColor: colors.accent,
   },
   chipLabel: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textMuted,
   },
   chipLabelActive: {
-    color: colors.accentSoft,
+    color: colors.accent,
     fontWeight: '600',
   },
   notes: {

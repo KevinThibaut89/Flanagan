@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { Button } from '../../src/components/Button';
+import { Icon } from '../../src/components/Icon';
 import { IngredientPicker } from '../../src/components/IngredientPicker';
 import {
   RecipeLineEditor,
@@ -11,11 +11,11 @@ import {
   newLine,
   type RecipeLineDraft,
 } from '../../src/components/RecipeLineEditor';
-import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { TextField } from '../../src/components/TextField';
 import { Body, Label, Loading, Muted, Screen } from '../../src/components/ui';
 import { useIngredientIndex } from '../../src/data/ingredients';
 import { useRecipe, useSaveRecipe, useUpdateRecipe } from '../../src/data/recipes';
+import { select } from '../../src/lib/haptics';
 import { colors, radius, spacing } from '../../src/theme';
 import type { RecipeIce, RecipeMethod } from '../../src/types/database';
 
@@ -173,8 +173,8 @@ export default function RecipeEditorScreen() {
   if (isEditing && isLoading) return <Loading />;
 
   return (
-    <Screen edges={['top']}>
-      <ScreenHeader title={isEditing ? 'Edit recipe' : 'Write a recipe'} />
+    <Screen edges={[]}>
+      <Stack.Screen options={{ title: isEditing ? 'Edit recipe' : 'Write a recipe' }} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -276,7 +276,7 @@ export default function RecipeEditorScreen() {
                     hitSlop={10}
                     accessibilityLabel={`Remove step ${i + 1}`}
                   >
-                    <MaterialCommunityIcons name="close" size={18} color={colors.textFaint} />
+                    <Icon name="close" size={18} color={colors.textFaint} />
                   </Pressable>
                 ) : null}
               </View>
@@ -345,7 +345,10 @@ function Chip({
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        select();
+        onPress();
+      }}
       style={[styles.chip, active && styles.chipActive]}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
@@ -374,20 +377,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
+    backgroundColor: colors.fillSubtle,
   },
   chipActive: {
     backgroundColor: colors.accentDim,
-    borderColor: colors.accent,
   },
   chipLabel: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textMuted,
   },
   chipLabelActive: {
-    color: colors.accentSoft,
+    color: colors.accent,
     fontWeight: '600',
   },
   stepRow: {

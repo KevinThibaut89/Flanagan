@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { colorForKind, labelForKind } from './CategoryPill';
+import { Icon } from './Icon';
 import { Body, Label, Muted } from './ui';
 import { useBottles } from '../data/bottles';
 import { useIngredientIndex, useIngredients } from '../data/ingredients';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, radius, spacing } from '../theme';
 import type { Ingredient } from '../types/database';
 
 /**
@@ -84,10 +84,10 @@ export function IngredientPicker({
               hitSlop={10}
               accessibilityLabel="Clear ingredient"
             >
-              <MaterialCommunityIcons name="close-circle" size={18} color={colors.textFaint} />
+              <Icon name="clear" size={18} color={colors.textFaint} />
             </Pressable>
           ) : null}
-          <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textFaint} />
+          <Icon name="picker" size={16} color={colors.textFaint} />
         </View>
       </Pressable>
 
@@ -179,7 +179,7 @@ function IngredientSearchModal({
       <View style={styles.modal}>
         <View style={styles.modalHeader}>
           <View style={styles.searchWrap}>
-            <MaterialCommunityIcons name="magnify" size={18} color={colors.textFaint} />
+            <Icon name="search" size={18} color={colors.textFaint} />
             <TextInput
               value={term}
               onChangeText={setTerm}
@@ -211,7 +211,7 @@ function IngredientSearchModal({
                 onPress={() => onFreeText(term.trim())}
                 style={({ pressed }) => [styles.result, pressed && styles.resultPressed]}
               >
-                <MaterialCommunityIcons name="pencil-outline" size={16} color={colors.textFaint} />
+                <Icon name="edit" size={16} color={colors.textFaint} />
                 <View style={styles.resultText}>
                   <Body>Use “{term.trim()}” as written</Body>
                   <Muted>Won’t be matched against your bar</Muted>
@@ -246,7 +246,7 @@ function IngredientSearchModal({
                   </Muted>
                 </View>
                 {owned.has(item.row.id) ? (
-                  <MaterialCommunityIcons name="check" size={18} color={colors.success} />
+                  <Icon name="check" size={18} color={colors.success} />
                 ) : null}
               </Pressable>
             );
@@ -262,12 +262,10 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   control: {
-    minHeight: 48,
+    minHeight: 44,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
     borderRadius: radius.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -300,22 +298,21 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     padding: spacing.lg,
   },
+  // Shaped like a UISearchBar field: tertiary fill, 36pt, 17pt text.
   searchWrap: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.fillSubtle,
     borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
     paddingHorizontal: spacing.md,
-    height: 44,
+    height: 36,
   },
   searchInput: {
     flex: 1,
     color: colors.text,
-    fontSize: 15,
+    fontSize: 17,
   },
   modalList: {
     paddingHorizontal: spacing.lg,

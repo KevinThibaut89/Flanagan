@@ -1,10 +1,9 @@
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { Button } from '../../src/components/Button';
+import { Icon } from '../../src/components/Icon';
 import { RecipeIngredientList } from '../../src/components/RecipeIngredientList';
-import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { Body, Divider, ErrorState, Label, Loading, Muted, Screen } from '../../src/components/ui';
 import { useAvailableIngredientIds } from '../../src/data/bottles';
 import {
@@ -15,7 +14,8 @@ import {
   useToggleFavorite,
 } from '../../src/data/recipes';
 import { useIngredientIndex } from '../../src/data/ingredients';
-import { colors, radius, spacing } from '../../src/theme';
+import { tap, warn } from '../../src/lib/haptics';
+import { colors, radius, spacing, tintOf } from '../../src/theme';
 import type { RecipeIce, RecipeMethod } from '../../src/types/database';
 
 const METHOD_LABELS: Record<RecipeMethod, string> = {
@@ -49,8 +49,8 @@ export default function RecipeDetailScreen() {
   if (isLoading) return <Loading />;
   if (error || !recipe) {
     return (
-      <Screen>
-        <ScreenHeader title="Recipe" />
+      <Screen edges={[]}>
+        <Stack.Screen options={{ title: 'Recipe' }} />
         <ErrorState
           error={error ?? new Error('That recipe no longer exists.')}
           action={<Button label="Try again" onPress={() => refetch()} />}
@@ -72,6 +72,7 @@ export default function RecipeDetailScreen() {
   ].filter(Boolean) as string[];
 
   function confirmDelete() {
+    warn();
     Alert.alert('Delete this recipe?', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -89,34 +90,40 @@ export default function RecipeDetailScreen() {
   }
 
   return (
-    <Screen edges={['top']}>
-      <ScreenHeader
-        title={recipe.title}
-        subtitle={base ? `${base.name} based` : recipe.source === 'ai' ? 'Suggested' : undefined}
-        action={
-          <Pressable
-            onPress={() => toggleFavorite.mutate({ id, isFavorite: !recipe.is_favorite })}
-            hitSlop={10}
-            accessibilityLabel={recipe.is_favorite ? 'Remove from favourites' : 'Add to favourites'}
-          >
-            <MaterialCommunityIcons
-              name={recipe.is_favorite ? 'star' : 'star-outline'}
-              size={22}
-              color={recipe.is_favorite ? colors.warning : colors.textMuted}
-            />
-          </Pressable>
-        }
+    <Screen edges={[]}>
+      <Stack.Screen
+        options={{
+          title: recipe.title,
+          headerRight: () => (
+            <Pressable
+              onPress={() => {
+                tap();
+                toggleFavorite.mutate({ id, isFavorite: !recipe.is_favorite });
+              }}
+              hitSlop={10}
+              accessibilityLabel={
+                recipe.is_favorite ? 'Remove from favourites' : 'Add to favourites'
+              }
+            >
+              <Icon
+                name={recipe.is_favorite ? 'starFill' : 'star'}
+                size={22}
+                color={recipe.is_favorite ? colors.warning : colors.textMuted}
+              />
+            </Pressable>
+          ),
+        }}
       />
 
       <ScrollView contentContainerStyle={styles.content}>
         <View
           style={[
             styles.verdict,
-            { borderColor: makeable ? colors.success : colors.border },
+            { backgroundColor: makeable ? tintOf(colors.success) : colors.surface },
           ]}
         >
-          <MaterialCommunityIcons
-            name={makeable ? 'check-circle-outline' : 'cart-outline'}
+          <Icon
+            name={makeable ? 'checkCircle' : 'cart'}
             size={20}
             color={makeable ? colors.success : colors.textMuted}
           />
@@ -128,6 +135,10 @@ export default function RecipeDetailScreen() {
                 : `You’re short ${missing.length} ingredients.`}
           </Body>
         </View>
+
+        {base || recipe.source === 'ai' ? (
+          <Muted>{base ? `${base.name} based` : 'Suggested'}</Muted>
+        ) : null}
 
         {specs.length > 0 ? <Muted>{specs.join(' · ')}</Muted> : null}
 
@@ -204,8 +215,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.md,
     borderRadius: radius.md,
-    borderWidth: 1,
-    backgroundColor: colors.surface,
   },
   verdictText: {
     flex: 1,

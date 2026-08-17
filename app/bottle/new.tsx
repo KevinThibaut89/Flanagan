@@ -7,8 +7,8 @@ import {
   parseOptionalNumber,
   type BottleFormValues,
 } from '../../src/components/BottleForm';
-import { ScreenHeader } from '../../src/components/ScreenHeader';
-import { Screen } from '../../src/components/ui';
+import { Muted, Screen } from '../../src/components/ui';
+import { spacing } from '../../src/theme';
 import { useAddBottle } from '../../src/data/bottles';
 import type { BottleKind } from '../../src/types/database';
 
@@ -70,11 +70,12 @@ export default function NewBottleScreen() {
   }
 
   return (
-    <Screen edges={['top']}>
-      <ScreenHeader
-        title="Add a bottle"
-        subtitle={params.productId ? 'Found from the barcode — check the details' : undefined}
-      />
+    <Screen edges={[]}>
+      {params.productId ? (
+        <Muted style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+          Found from the barcode — check the details.
+        </Muted>
+      ) : null}
       <BottleForm
         values={values}
         onChange={setValues}

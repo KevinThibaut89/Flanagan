@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
-import { Pressable, SectionList, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
 
 import { labelForKind } from '../src/components/CategoryPill';
-import { Body, Label, Loading, Muted, Screen, Title } from '../src/components/ui';
+import { Icon } from '../src/components/Icon';
+import { Body, Label, Loading, Muted, Screen } from '../src/components/ui';
 import { useBottles, useToggleStaple } from '../src/data/bottles';
 import { useStapleIngredients } from '../src/data/ingredients';
-import { colors, radius, spacing } from '../src/theme';
+import { select } from '../src/lib/haptics';
+import { colors, radius, spacing, typography } from '../src/theme';
 import type { Ingredient, IngredientKind } from '../src/types/database';
 
 /**
@@ -42,43 +43,52 @@ export default function StaplesScreen() {
   if (isLoading) return <Loading />;
 
   return (
-    <Screen edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Title>Staples</Title>
-          <Muted>The everyday things behind your bar.</Muted>
-        </View>
-        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Close">
-          <MaterialCommunityIcons name="close" size={24} color={colors.textMuted} />
-        </Pressable>
-      </View>
+    <Screen edges={['bottom']}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Done">
+              <Text style={styles.done}>Done</Text>
+            </Pressable>
+          ),
+        }}
+      />
 
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.content}
         stickySectionHeadersEnabled={false}
+        ListHeaderComponent={
+          <Muted style={styles.intro}>The everyday things behind your bar.</Muted>
+        }
         renderSectionHeader={({ section }) => (
           <Label style={styles.sectionHeader}>{section.title}</Label>
         )}
-        renderItem={({ item }) => {
+        renderItem={({ item, index, section }) => {
           const have = inStock.has(item.id);
+          const first = index === 0;
+          const last = index === section.data.length - 1;
           return (
-            <Pressable
-              onPress={() =>
-                toggle.mutate({ ingredientId: item.id, name: item.name, inStock: !have })
-              }
-              style={[styles.item, have && styles.itemActive]}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: have }}
-            >
-              <MaterialCommunityIcons
-                name={have ? 'check-circle' : 'circle-outline'}
-                size={22}
-                color={have ? colors.success : colors.textFaint}
-              />
-              <Body style={[styles.itemLabel, have && styles.itemLabelActive]}>{item.name}</Body>
-            </Pressable>
+            <View>
+              {!first ? (
+                <View style={styles.separatorWrap}>
+                  <View style={styles.separator} />
+                </View>
+              ) : null}
+              <Pressable
+                onPress={() => {
+                  select();
+                  toggle.mutate({ ingredientId: item.id, name: item.name, inStock: !have });
+                }}
+                style={[styles.item, first && styles.itemFirst, last && styles.itemLast]}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: have }}
+              >
+                <Body style={have ? undefined : styles.itemLabelOff}>{item.name}</Body>
+                {have ? <Icon name="check" size={20} color={colors.accent} /> : null}
+              </Pressable>
+            </View>
           );
         }}
       />
@@ -87,45 +97,52 @@ export default function StaplesScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  headerText: {
-    gap: 2,
+  done: {
+    ...typography.headline,
+    color: colors.accent,
   },
   content: {
     padding: spacing.lg,
-    paddingTop: 0,
-    gap: spacing.sm,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxl,
+  },
+  intro: {
+    marginBottom: spacing.sm,
   },
   sectionHeader: {
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
     marginBottom: spacing.xs,
+    marginLeft: spacing.lg,
   },
+  // One grouped card per section: the rows share a surface and the card's
+  // corners live on the first and last row.
   item: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.md,
-    paddingVertical: spacing.md,
+    minHeight: 44,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
   },
-  itemActive: {
-    borderColor: colors.success,
-    backgroundColor: colors.surfaceRaised,
+  itemFirst: {
+    borderTopLeftRadius: radius.md,
+    borderTopRightRadius: radius.md,
   },
-  itemLabel: {
+  itemLast: {
+    borderBottomLeftRadius: radius.md,
+    borderBottomRightRadius: radius.md,
+  },
+  separatorWrap: {
+    backgroundColor: colors.surface,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.borderSubtle,
+    marginLeft: spacing.lg,
+  },
+  itemLabelOff: {
     color: colors.textMuted,
-  },
-  itemLabelActive: {
-    color: colors.text,
-    fontWeight: '600',
   },
 });

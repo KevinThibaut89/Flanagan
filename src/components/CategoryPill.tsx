@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { categoryColors, radius, spacing } from '../theme';
+import { categoryColors, radius, spacing, tintOf } from '../theme';
 import type { IngredientKind } from '../types/database';
 
 const KIND_LABELS: Record<IngredientKind, string> = {
@@ -32,7 +32,7 @@ export function labelForKind(kind: IngredientKind | null | undefined): string {
 export function CategoryPill({ kind }: { kind: IngredientKind | null | undefined }) {
   const color = colorForKind(kind);
   return (
-    <View style={[styles.pill, { borderColor: color }]}>
+    <View style={[styles.pill, { backgroundColor: tintOf(color) }]}>
       <Text style={[styles.text, { color }]}>{labelForKind(kind)}</Text>
     </View>
   );
@@ -43,12 +43,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: radius.pill,
-    borderWidth: 1,
     alignSelf: 'flex-start',
   },
   text: {
     fontSize: 11,
     fontWeight: '600',
-    letterSpacing: 0.3,
   },
 });

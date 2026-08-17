@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import { Icon } from './Icon';
 import { Body, Muted } from './ui';
 import { useIngredientIndex } from '../data/ingredients';
 import { formatAmount, isTopUp } from '../lib/units';
@@ -41,17 +41,13 @@ export function RecipeIngredientList({
           <View key={line.id} style={styles.row}>
             <View style={styles.mark}>
               {required ? (
-                <MaterialCommunityIcons
+                <Icon
                   name={have ? 'check' : 'close'}
                   size={16}
                   color={have ? colors.success : colors.danger}
                 />
               ) : (
-                <MaterialCommunityIcons
-                  name="circle-small"
-                  size={16}
-                  color={colors.textFaint}
-                />
+                <Icon name="bullet" size={6} color={colors.textFaint} />
               )}
             </View>
 

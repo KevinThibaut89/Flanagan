@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import { Icon } from './Icon';
 import { IngredientPicker } from './IngredientPicker';
 import { Body, Muted } from './ui';
 import { toMl } from '../lib/units';
@@ -97,7 +97,7 @@ export function RecipeLineEditor({
         </ScrollView>
 
         <Pressable onPress={onRemove} hitSlop={10} accessibilityLabel="Remove this ingredient">
-          <MaterialCommunityIcons name="close" size={20} color={colors.textFaint} />
+          <Icon name="close" size={20} color={colors.textFaint} />
         </Pressable>
       </View>
 
@@ -145,8 +145,8 @@ function Toggle({
       accessibilityRole="checkbox"
       accessibilityState={{ checked: active }}
     >
-      <MaterialCommunityIcons
-        name={active ? 'checkbox-marked' : 'checkbox-blank-outline'}
+      <Icon
+        name={active ? 'checkboxOn' : 'checkboxOff'}
         size={15}
         color={active ? colors.accent : colors.textFaint}
       />
@@ -188,8 +188,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
     padding: spacing.md,
     gap: spacing.sm,
   },
@@ -217,19 +215,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
+    backgroundColor: colors.fillSubtle,
   },
   unitChipActive: {
     backgroundColor: colors.accentDim,
-    borderColor: colors.accent,
   },
   unitLabel: {
     fontSize: 13,
     color: colors.textMuted,
   },
   unitLabelActive: {
-    color: colors.accentSoft,
+    color: colors.accent,
     fontWeight: '600',
   },
   toggleRow: {

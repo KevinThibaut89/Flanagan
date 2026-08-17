@@ -1,12 +1,13 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
 
 import { Button } from '../src/components/Button';
-import { Body, Card, Divider, Label, Muted, Screen, Title } from '../src/components/ui';
+import { Icon } from '../src/components/Icon';
+import { Body, Card, Divider, Label, Muted, Screen } from '../src/components/ui';
+import { select } from '../src/lib/haptics';
 import { useAuth } from '../src/providers/auth';
 import { usePreferences } from '../src/providers/preferences';
-import { colors, radius, spacing } from '../src/theme';
+import { colors, spacing, typography } from '../src/theme';
 import type { UnitPreference } from '../src/types/database';
 
 const UNIT_OPTIONS: Array<{ value: UnitPreference; label: string; example: string }> = [
@@ -20,33 +21,39 @@ export default function SettingsScreen() {
   const { units, setUnits } = usePreferences();
 
   return (
-    <Screen edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Title>Settings</Title>
-        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Close">
-          <MaterialCommunityIcons name="close" size={24} color={colors.textMuted} />
-        </Pressable>
-      </View>
+    <Screen edges={['bottom']}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Done">
+              <Text style={styles.done}>Done</Text>
+            </Pressable>
+          ),
+        }}
+      />
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.section}>
-          <Label>Measurements</Label>
+          <Label style={styles.sectionHeader}>Measurements</Label>
           <Card style={styles.optionCard}>
             {UNIT_OPTIONS.map((option, i) => (
               <View key={option.value}>
                 {i > 0 ? <Divider style={styles.optionDivider} /> : null}
                 <Pressable
-                  onPress={() => setUnits(option.value)}
+                  onPress={() => {
+                    select();
+                    setUnits(option.value);
+                  }}
                   style={styles.option}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: units === option.value }}
                 >
                   <View style={styles.optionText}>
-                    <Body style={styles.optionLabel}>{option.label}</Body>
-                    <Muted>{option.example}</Muted>
+                    <Body>{option.label}</Body>
+                    <Muted style={styles.optionExample}>{option.example}</Muted>
                   </View>
                   {units === option.value ? (
-                    <MaterialCommunityIcons name="check" size={20} color={colors.accent} />
+                    <Icon name="check" size={20} color={colors.accent} />
                   ) : null}
                 </Pressable>
               </View>
@@ -59,10 +66,12 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Label>Account</Label>
-          <Card>
-            <Muted>Signed in as</Muted>
-            <Body style={styles.email}>{user?.email ?? 'Unknown'}</Body>
+          <Label style={styles.sectionHeader}>Account</Label>
+          <Card style={styles.optionCard}>
+            <View style={styles.option}>
+              <Body>Signed in as</Body>
+              <Muted>{user?.email ?? 'Unknown'}</Muted>
+            </View>
           </Card>
           <Button label="Sign out" variant="danger" onPress={() => void signOut()} />
         </View>
@@ -72,19 +81,19 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+  done: {
+    ...typography.headline,
+    color: colors.accent,
   },
   content: {
     padding: spacing.lg,
     gap: spacing.xxl,
   },
   section: {
-    gap: spacing.md,
+    gap: spacing.sm,
+  },
+  sectionHeader: {
+    marginLeft: spacing.lg,
   },
   optionCard: {
     padding: 0,
@@ -94,23 +103,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.lg,
+    gap: spacing.md,
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   optionDivider: {
-    marginHorizontal: spacing.lg,
+    marginLeft: spacing.lg,
   },
   optionText: {
     gap: 2,
   },
-  optionLabel: {
-    fontWeight: '600',
+  optionExample: {
+    ...typography.footnote,
   },
   note: {
-    paddingHorizontal: spacing.xs,
-  },
-  email: {
-    marginTop: spacing.xs,
-    fontWeight: '600',
-    color: colors.accentSoft,
+    ...typography.footnote,
+    paddingHorizontal: spacing.lg,
   },
 });

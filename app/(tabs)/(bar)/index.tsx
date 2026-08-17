@@ -1,17 +1,19 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { Link, Stack, useRouter } from 'expo-router';
 
-import { Button } from '../../src/components/Button';
-import { CategoryPill, colorForKind } from '../../src/components/CategoryPill';
-import { Body, EmptyState, ErrorState, Loading, Muted, Screen, Title } from '../../src/components/ui';
-import { useBottles } from '../../src/data/bottles';
-import { useIngredientIndex } from '../../src/data/ingredients';
-import { formatBottleSize } from '../../src/lib/units';
-import { useUnits } from '../../src/providers/preferences';
-import { colors, radius, spacing, typography } from '../../src/theme';
-import type { Bottle, IngredientKind } from '../../src/types/database';
+import { Button } from '../../../src/components/Button';
+import { CategoryPill, colorForKind } from '../../../src/components/CategoryPill';
+import { Icon, type IconName } from '../../../src/components/Icon';
+import { Body, EmptyState, ErrorState, Loading, Muted, Screen } from '../../../src/components/ui';
+import { useBottles } from '../../../src/data/bottles';
+import { useIngredientIndex } from '../../../src/data/ingredients';
+import { select } from '../../../src/lib/haptics';
+import { formatBottleSize } from '../../../src/lib/units';
+import { useUnits } from '../../../src/providers/preferences';
+import { colors, radius, spacing, typography } from '../../../src/theme';
+import type { Bottle, IngredientKind } from '../../../src/types/database';
 
 type Filter = 'all' | 'bottles' | 'staples' | 'low' | 'out';
 
@@ -29,6 +31,7 @@ const LOW_FILL_PCT = 25;
 export default function BarScreen() {
   const router = useRouter();
   const units = useUnits();
+  const tabBarHeight = useBottomTabBarHeight();
   const { data: bottles, isLoading, error, refetch, isRefetching } = useBottles();
   const { index } = useIngredientIndex();
 
@@ -62,77 +65,98 @@ export default function BarScreen() {
     [bottles],
   );
 
-  if (isLoading) return <Loading label="Reading your shelf…" />;
+  const screenOptions = (
+    <Stack.Screen
+      options={{
+        headerLeft: () => (
+          <HeaderButton icon="settings" label="Settings" onPress={() => router.push('/settings')} />
+        ),
+        headerRight: () => (
+          <View style={styles.headerActions}>
+            <HeaderButton
+              icon="staples"
+              label="Staples"
+              onPress={() => router.push('/staples')}
+            />
+            <HeaderButton
+              icon="add"
+              label="Add a bottle by hand"
+              onPress={() => router.push('/bottle/new')}
+            />
+          </View>
+        ),
+        headerSearchBarOptions: {
+          placeholder: 'Search your bottles',
+          hideWhenScrolling: false,
+          onChangeText: (event) => setSearch(event.nativeEvent.text),
+          tintColor: colors.accent,
+          textColor: colors.text,
+        },
+      }}
+    />
+  );
+
+  if (isLoading) {
+    return (
+      <Screen edges={[]}>
+        {screenOptions}
+        <Loading label="Reading your shelf…" />
+      </Screen>
+    );
+  }
   if (error) {
     return (
-      <Screen>
+      <Screen edges={[]}>
+        {screenOptions}
         <ErrorState error={error} action={<Button label="Try again" onPress={() => refetch()} />} />
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <View>
-            <Title>Your bar</Title>
-            <Muted>
-              {inStockCount} {inStockCount === 1 ? 'item' : 'items'} in stock
-            </Muted>
-          </View>
-          <View style={styles.headerActions}>
-            <IconButton icon="tune-variant" label="Staples" onPress={() => router.push('/staples')} />
-            <IconButton icon="cog-outline" label="Settings" onPress={() => router.push('/settings')} />
-          </View>
-        </View>
-
-        <View style={styles.searchWrap}>
-          <MaterialCommunityIcons name="magnify" size={18} color={colors.textFaint} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search your bottles"
-            placeholderTextColor={colors.textFaint}
-            selectionColor={colors.accent}
-            autoCorrect={false}
-            style={styles.searchInput}
-          />
-          {search ? (
-            <Pressable onPress={() => setSearch('')} hitSlop={8} accessibilityLabel="Clear search">
-              <MaterialCommunityIcons name="close-circle" size={18} color={colors.textFaint} />
-            </Pressable>
-          ) : null}
-        </View>
-
-        <FlatList
-          horizontal
-          data={FILTERS}
-          keyExtractor={(item) => item.key}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => setFilter(item.key)}
-              style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
-            >
-              <Body
-                style={[styles.filterLabel, filter === item.key && styles.filterLabelActive]}
-              >
-                {item.label}
-              </Body>
-            </Pressable>
-          )}
-        />
-      </View>
+    <Screen edges={[]}>
+      {screenOptions}
 
       <FlatList
         data={visible}
         keyExtractor={(item) => item.id}
         refreshing={isRefetching}
         onRefresh={refetch}
-        contentContainerStyle={visible.length === 0 ? styles.emptyWrap : styles.listContent}
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={[
+          visible.length === 0 ? styles.emptyWrap : styles.listContent,
+          { paddingBottom: (Platform.OS === 'ios' ? tabBarHeight : 0) + spacing.xl },
+        ]}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListHeaderComponent={
+          <View style={styles.listHeader}>
+            <Muted>
+              {inStockCount} {inStockCount === 1 ? 'item' : 'items'} in stock
+            </Muted>
+            <FlatList
+              horizontal
+              data={FILTERS}
+              keyExtractor={(item) => item.key}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterRow}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => {
+                    select();
+                    setFilter(item.key);
+                  }}
+                  style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
+                >
+                  <Body
+                    style={[styles.filterLabel, filter === item.key && styles.filterLabelActive]}
+                  >
+                    {item.label}
+                  </Body>
+                </Pressable>
+              )}
+            />
+          </View>
+        }
         ListEmptyComponent={
           bottles && bottles.length === 0 ? (
             <EmptyState
@@ -152,25 +176,16 @@ export default function BarScreen() {
           />
         )}
       />
-
-      <Pressable
-        style={styles.fab}
-        onPress={() => router.push('/bottle/new')}
-        accessibilityRole="button"
-        accessibilityLabel="Add a bottle by hand"
-      >
-        <MaterialCommunityIcons name="plus" size={26} color={colors.bg} />
-      </Pressable>
     </Screen>
   );
 }
 
-function IconButton({
+function HeaderButton({
   icon,
   label,
   onPress,
 }: {
-  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  icon: IconName;
   label: string;
   onPress: () => void;
 }) {
@@ -180,9 +195,9 @@ function IconButton({
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={styles.iconButton}
+      style={({ pressed }) => pressed && styles.headerButtonPressed}
     >
-      <MaterialCommunityIcons name={icon} size={20} color={colors.textMuted} />
+      <Icon name={icon} size={22} color={colors.accent} />
     </Pressable>
   );
 }
@@ -252,77 +267,45 @@ function FillBar({ pct, low }: { pct: number; low: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    gap: spacing.lg,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
   headerActions: {
     flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.md,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
+    gap: spacing.lg,
   },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
-    paddingHorizontal: spacing.md,
-    height: 44,
+  headerButtonPressed: {
+    opacity: 0.6,
   },
-  searchInput: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 15,
+  listHeader: {
+    gap: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
   },
   filterRow: {
     gap: spacing.sm,
-    paddingBottom: spacing.xs,
   },
   filterChip: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
+    backgroundColor: colors.fillSubtle,
   },
   filterChipActive: {
     backgroundColor: colors.accentDim,
-    borderColor: colors.accent,
   },
   filterLabel: {
-    ...typography.small,
+    ...typography.subheadline,
     color: colors.textMuted,
   },
   filterLabelActive: {
-    color: colors.accentSoft,
+    color: colors.accent,
     fontWeight: '600',
   },
   listContent: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: 96,
   },
   emptyWrap: {
     flexGrow: 1,
+    paddingHorizontal: spacing.lg,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
@@ -370,21 +353,5 @@ const styles = StyleSheet.create({
   },
   fillLabel: {
     fontSize: 11,
-  },
-  fab: {
-    position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
   },
 });
