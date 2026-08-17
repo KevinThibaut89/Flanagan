@@ -66,6 +66,7 @@ export function BottleForm({
   busy = false,
   error,
   footer,
+  ingredientGuessed = false,
 }: {
   values: BottleFormValues;
   onChange: (values: BottleFormValues) => void;
@@ -74,6 +75,8 @@ export function BottleForm({
   busy?: boolean;
   error?: string | null;
   footer?: React.ReactNode;
+  /** The current ingredient was guessed from the name, not chosen by the user. */
+  ingredientGuessed?: boolean;
 }) {
   const units = useUnits();
   const [touched, setTouched] = useState(false);
@@ -123,8 +126,9 @@ export function BottleForm({
             placeholder="Not set — won’t match recipes"
           />
           <Muted style={styles.hint}>
-            This is how Flanagan knows a recipe calling for gin can use this bottle. Leave it unset
-            and the bottle still lives in your bar, it just won’t count towards anything.
+            {ingredientGuessed
+              ? 'Guessed from the name — check it, and tap to change it if it’s wrong.'
+              : 'This is how Flanagan knows a recipe calling for gin can use this bottle. Leave it unset and the bottle still lives in your bar, it just won’t count towards anything.'}
           </Muted>
         </View>
 
