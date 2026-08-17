@@ -88,27 +88,37 @@ npx expo start
 Barcode scanning needs real camera hardware, so use a device rather than a
 simulator.
 
-> **Expo Go supports exactly one SDK version** — the one its binary was built
-> against — so the project's SDK and the installed Expo Go have to match in both
-> directions. Being one SDK *behind* the client is refused just as flatly as being
-> one ahead. This project therefore tracks the current SDK (**57**), which is what
-> a fresh App Store install of Expo Go targets. Change SDK only with
-> `npx expo install expo@^<major> --fix`, which moves every Expo package
-> together, and `npx expo install --check` to confirm the set matches the pin.
+> **This project is pinned to Expo SDK 54, and the pin is not a preference.**
 >
-> When Expo Go refuses to open the project, the message is not always the whole
-> story — the device can be reaching a stale dev server or a cached project
-> entry, which looks identical to a version mismatch. Restart cleanly before
-> believing it:
+> Expo Go supports exactly one SDK version — the one its binary was built
+> against — so the project has to match the installed client in *both*
+> directions. A project one SDK behind the client is refused just as flatly as
+> one ahead, and the error is the same unhelpful *"requires a newer version of
+> Expo Go"* either way. The device this was set up against reports **Supported
+> SDK 54**, so 54 is what the project targets, three releases behind `latest`.
 >
-> ```sh
-> pkill -f "expo start" || true      # a server left on :8081 serves the OLD config
-> npx expo start -c                  # -c clears Metro's cache
-> ```
+> **Read the target off the device, don't infer it.** In Expo Go: **Settings →
+> App Info → Supported SDK**. That number is the only thing that decides whether
+> the project opens, and it is not always the newest SDK even on a freshly
+> installed client — the App Store serves an older build when the newest one
+> needs a newer iOS than the phone runs.
 >
-> then force-quit Expo Go, and open the project by typing the
-> `exp://<LAN-IP>:8081` URL into Expo Go by hand rather than scanning — that
-> bypasses stale QR codes and the "Recently opened" list in one move.
+> If Expo Go ever updates past 54, this project stops opening until the pin
+> moves with it. Move it with `npx expo install expo@^<major> --fix`, which
+> shifts every Expo package as a set; `npx expo install --check` reports whether
+> the current dependency set matches the pin. Do not bump `expo` on its own.
+>
+> Note SDK 54 predates Expo's unified versioning, so its packages have
+> independent version lines (`expo-camera@17`, `expo-font@14`, `expo-image@3`)
+> rather than matching the SDK number. `expo-font` and `react-native-screens` are
+> pinned explicitly because `@expo/vector-icons` and `expo-router` declare them
+> as open-ended peers (`>=14.0.4`, `*`), which npm otherwise satisfies with the
+> newest published version — quietly dropping a current-SDK native module into
+> the tree.
+>
+> The permanent way out of all of this is a development build
+> (`npx expo run:ios` on a cabled iPhone — needs a Mac with Xcode, but no Apple
+> Developer membership), which ignores Expo Go's SDK entirely.
 
 ### Re-applying from scratch
 
