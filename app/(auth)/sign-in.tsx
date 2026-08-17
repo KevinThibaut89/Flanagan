@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
 import { TextField } from '../../src/components/TextField';
-import { Body, Muted, Screen, Title } from '../../src/components/ui';
+import { Body, Flourish, Monogram, Muted, Screen, Title } from '../../src/components/ui';
 import { useAuth } from '../../src/providers/auth';
-import { colors, gradients, shadows, spacing, typography } from '../../src/theme';
+import { colors, spacing, typography } from '../../src/theme';
 
 type Step = 'email' | 'code';
 
@@ -65,16 +63,9 @@ export default function SignIn() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <LinearGradient
-              colors={gradients.brand}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.monogram}
-            >
-              <MaterialCommunityIcons name="glass-cocktail" size={34} color={colors.bg} />
-            </LinearGradient>
+            <Monogram size={72} />
             <Title style={styles.brand}>Flanagan</Title>
-            <Muted style={styles.tagline}>Your bar, and what it can make tonight.</Muted>
+            <Flourish style={styles.tagline}>Your bar, and what it can make tonight.</Flourish>
           </View>
 
           {step === 'email' ? (
@@ -145,22 +136,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     alignItems: 'center',
   },
-  monogram: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-    ...shadows.raised,
-  },
   brand: {
     ...typography.display,
-    fontSize: 36,
+    fontSize: 38,
+    lineHeight: 46,
+    marginTop: spacing.md,
   },
   tagline: {
-    fontSize: 15,
     textAlign: 'center',
+    color: colors.textMuted,
   },
   form: {
     gap: spacing.lg,

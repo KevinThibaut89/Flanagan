@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from './Button';
+import { Chip } from './Chip';
 import { IngredientPicker } from './IngredientPicker';
 import { TextField } from './TextField';
 import { Body, Label, Muted } from './ui';
 import { ML_PER_OZ } from '../lib/units';
 import { useUnits } from '../providers/preferences';
-import { colors, radius, spacing } from '../theme';
+import { colors, spacing } from '../theme';
 import type { BottleKind, BottleStatus } from '../types/database';
 
 export interface BottleFormValues {
@@ -221,27 +222,6 @@ export function BottleForm({
   );
 }
 
-function Chip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.chip, active && styles.chipActive]}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-    >
-      <Body style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Body>
-    </Pressable>
-  );
-}
-
 /** Turns form strings into the nullable numbers the database expects. */
 export function parseOptionalNumber(value: string): number | null {
   const trimmed = value.trim();
@@ -253,9 +233,9 @@ export function parseOptionalNumber(value: string): number | null {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
-    padding: spacing.lg,
+    padding: spacing.gutter,
     gap: spacing.lg,
-    paddingBottom: spacing.xxl * 2,
+    paddingBottom: spacing.section + spacing.xl,
   },
   pickerBlock: {
     gap: spacing.xs,
@@ -274,26 +254,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
-  },
-  chipActive: {
-    backgroundColor: colors.accentDim,
-    borderColor: colors.accent,
-  },
-  chipLabel: {
-    fontSize: 14,
-    color: colors.textMuted,
-  },
-  chipLabelActive: {
-    color: colors.accentSoft,
-    fontWeight: '600',
   },
   notes: {
     minHeight: 90,

@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   },
   amount: {
     width: 72,
-    color: colors.accentSoft,
+    color: colors.cream,
     fontVariant: ['tabular-nums'],
   },
   nameBlock: {

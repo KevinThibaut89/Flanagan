@@ -3,10 +3,10 @@ import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-n
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { colorForKind, labelForKind } from './CategoryPill';
-import { Body, Label, Muted } from './ui';
+import { Body, Label, Muted, Screen } from './ui';
 import { useBottles } from '../data/bottles';
 import { useIngredientIndex, useIngredients } from '../data/ingredients';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, radius, spacing } from '../theme';
 import type { Ingredient } from '../types/database';
 
 /**
@@ -176,7 +176,9 @@ function IngredientSearchModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.modal}>
+      {/* Screen gives the sheet its background and, on Android (where the
+          modal goes full-screen), keeps the search field off the status bar. */}
+      <Screen edges={['top']}>
         <View style={styles.modalHeader}>
           <View style={styles.searchWrap}>
             <MaterialCommunityIcons name="magnify" size={18} color={colors.textFaint} />
@@ -193,7 +195,7 @@ function IngredientSearchModal({
             />
           </View>
           <Pressable onPress={onClose} hitSlop={8} accessibilityLabel="Cancel">
-            <Body style={{ color: colors.accent }}>Cancel</Body>
+            <Body style={styles.cancel}>Cancel</Body>
           </Pressable>
         </View>
 
@@ -220,11 +222,13 @@ function IngredientSearchModal({
             ) : null
           }
           ListEmptyComponent={
-            term.trim() ? null : (
-              <View style={styles.noResults}>
-                <Muted>Search for an ingredient.</Muted>
-              </View>
-            )
+            <View style={styles.noResults}>
+              <Muted>
+                {term.trim()
+                  ? `Nothing in the vocabulary matches “${term.trim()}”.`
+                  : 'Search for an ingredient.'}
+              </Muted>
+            </View>
           }
           renderItem={({ item }) => {
             if (item.type === 'heading') {
@@ -252,7 +256,7 @@ function IngredientSearchModal({
             );
           }}
         />
-      </View>
+      </Screen>
     </Modal>
   );
 }
@@ -261,13 +265,14 @@ const styles = StyleSheet.create({
   field: {
     gap: spacing.xs,
   },
+  // Mirrors the TextField input so pickers and fields read as one idiom.
   control: {
     minHeight: 48,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -290,15 +295,12 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  modal: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    padding: spacing.lg,
+    padding: spacing.gutter,
+    paddingVertical: spacing.lg,
   },
   searchWrap: {
     flex: 1,
@@ -307,18 +309,22 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.borderSubtle,
     paddingHorizontal: spacing.md,
-    height: 44,
+    height: 46,
   },
   searchInput: {
     flex: 1,
     color: colors.text,
     fontSize: 15,
   },
+  cancel: {
+    color: colors.cream,
+    fontWeight: '600',
+  },
   modalList: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.gutter,
     paddingBottom: spacing.xxl,
   },
   groupHeading: {

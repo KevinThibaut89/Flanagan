@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
-import { Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { SectionList, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { labelForKind } from '../src/components/CategoryPill';
-import { Body, Label, Loading, Muted, Screen, Title } from '../src/components/ui';
+import { Body, Label, Loading, Muted, PressableScale, Screen, Title } from '../src/components/ui';
 import { useBottles, useToggleStaple } from '../src/data/bottles';
 import { useStapleIngredients } from '../src/data/ingredients';
-import { colors, radius, spacing } from '../src/theme';
+import { colors, spacing } from '../src/theme';
 import type { Ingredient, IngredientKind } from '../src/types/database';
 
 /**
@@ -48,9 +49,9 @@ export default function StaplesScreen() {
           <Title>Staples</Title>
           <Muted>The everyday things behind your bar.</Muted>
         </View>
-        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Close">
+        <PressableScale onPress={() => router.back()} hitSlop={8} accessibilityLabel="Close">
           <MaterialCommunityIcons name="close" size={24} color={colors.textMuted} />
-        </Pressable>
+        </PressableScale>
       </View>
 
       <SectionList
@@ -58,17 +59,19 @@ export default function StaplesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.content}
         stickySectionHeadersEnabled={false}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderSectionHeader={({ section }) => (
           <Label style={styles.sectionHeader}>{section.title}</Label>
         )}
         renderItem={({ item }) => {
           const have = inStock.has(item.id);
           return (
-            <Pressable
-              onPress={() =>
-                toggle.mutate({ ingredientId: item.id, name: item.name, inStock: !have })
-              }
-              style={[styles.item, have && styles.itemActive]}
+            <PressableScale
+              onPress={() => {
+                void Haptics.selectionAsync();
+                toggle.mutate({ ingredientId: item.id, name: item.name, inStock: !have });
+              }}
+              style={styles.item}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: have }}
             >
@@ -78,7 +81,7 @@ export default function StaplesScreen() {
                 color={have ? colors.success : colors.textFaint}
               />
               <Body style={[styles.itemLabel, have && styles.itemLabelActive]}>{item.name}</Body>
-            </Pressable>
+            </PressableScale>
           );
         }}
       />
@@ -91,35 +94,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.gutter,
     paddingVertical: spacing.md,
+    gap: spacing.md,
   },
   headerText: {
-    gap: 2,
+    gap: spacing.xs,
   },
   content: {
-    padding: spacing.lg,
-    paddingTop: 0,
-    gap: spacing.sm,
+    paddingHorizontal: spacing.gutter,
+    paddingBottom: spacing.xxl,
   },
   sectionHeader: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.xs,
+    marginTop: spacing.xl,
+    marginBottom: spacing.sm,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.borderSubtle,
+    marginLeft: 22 + spacing.md,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
-  },
-  itemActive: {
-    borderColor: colors.success,
-    backgroundColor: colors.surfaceRaised,
   },
   itemLabel: {
     color: colors.textMuted,

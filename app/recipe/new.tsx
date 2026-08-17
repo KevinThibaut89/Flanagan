@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
+import { Chip } from '../../src/components/Chip';
 import { IngredientPicker } from '../../src/components/IngredientPicker';
 import {
   RecipeLineEditor,
@@ -13,10 +14,10 @@ import {
 } from '../../src/components/RecipeLineEditor';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { TextField } from '../../src/components/TextField';
-import { Body, Label, Loading, Muted, Screen } from '../../src/components/ui';
+import { Body, Label, Loading, Muted, PressableScale, Screen } from '../../src/components/ui';
 import { useIngredientIndex } from '../../src/data/ingredients';
 import { useRecipe, useSaveRecipe, useUpdateRecipe } from '../../src/data/recipes';
-import { colors, radius, spacing } from '../../src/theme';
+import { colors, spacing, typography } from '../../src/theme';
 import type { RecipeIce, RecipeMethod } from '../../src/types/database';
 
 const METHODS: Array<{ value: RecipeMethod; label: string }> = [
@@ -170,7 +171,14 @@ export default function RecipeEditorScreen() {
     }
   }
 
-  if (isEditing && isLoading) return <Loading />;
+  if (isEditing && isLoading) {
+    return (
+      <Screen edges={['top']}>
+        <ScreenHeader title="Edit recipe" />
+        <Loading />
+      </Screen>
+    );
+  }
 
   return (
     <Screen edges={['top']}>
@@ -258,7 +266,7 @@ export default function RecipeEditorScreen() {
             <Label>Steps</Label>
             {steps.map((step, i) => (
               <View key={i} style={styles.stepRow}>
-                <Body style={styles.stepNumber}>{i + 1}</Body>
+                <Text style={styles.stepNumber}>{i + 1}.</Text>
                 <View style={styles.flex}>
                   <TextField
                     value={step}
@@ -271,13 +279,13 @@ export default function RecipeEditorScreen() {
                   />
                 </View>
                 {steps.length > 1 ? (
-                  <Pressable
+                  <PressableScale
                     onPress={() => setSteps((current) => current.filter((_, j) => j !== i))}
-                    hitSlop={10}
+                    hitSlop={8}
                     accessibilityLabel={`Remove step ${i + 1}`}
                   >
                     <MaterialCommunityIcons name="close" size={18} color={colors.textFaint} />
-                  </Pressable>
+                  </PressableScale>
                 ) : null}
               </View>
             ))}
@@ -334,33 +342,12 @@ export default function RecipeEditorScreen() {
   );
 }
 
-function Chip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.chip, active && styles.chipActive]}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-    >
-      <Body style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Body>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
-    padding: spacing.lg,
+    padding: spacing.gutter,
     gap: spacing.lg,
-    paddingBottom: spacing.xxl * 2,
+    paddingBottom: spacing.section + spacing.xl,
   },
   section: {
     gap: spacing.sm,
@@ -370,35 +357,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  chip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
-  },
-  chipActive: {
-    backgroundColor: colors.accentDim,
-    borderColor: colors.accent,
-  },
-  chipLabel: {
-    fontSize: 14,
-    color: colors.textMuted,
-  },
-  chipLabelActive: {
-    color: colors.accentSoft,
-    fontWeight: '600',
-  },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
   },
   stepNumber: {
-    width: 16,
+    ...typography.serifBody,
+    width: 22,
     color: colors.accent,
-    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
   stepInput: {
     minHeight: 48,

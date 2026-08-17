@@ -1,10 +1,10 @@
 import type { ComponentProps } from 'react';
 import { Tabs } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { StyleSheet, View, type ColorValue } from 'react-native';
+import { StyleSheet, type ColorValue } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
-import { colors, gradients, shadows } from '../../src/theme';
+import { colors } from '../../src/theme';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -14,36 +14,25 @@ function icon(name: IconName) {
   );
 }
 
-/** Scan sits centre-stage as a raised copper button, like a camera shutter. */
-function ScanButton() {
-  return (
-    <View style={styles.scanWrap}>
-      <LinearGradient
-        colors={gradients.brand}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.scanButton}
-      >
-        <MaterialCommunityIcons name="barcode-scan" size={24} color={colors.bg} />
-      </LinearGradient>
-    </View>
-  );
-}
-
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.accentSoft,
+        tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textFaint,
         tabBarStyle: {
-          backgroundColor: colors.surface,
+          backgroundColor: colors.bg,
           borderTopColor: colors.borderSubtle,
           borderTopWidth: StyleSheet.hairlineWidth,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: 0.4 },
         sceneStyle: { backgroundColor: colors.bg },
+      }}
+      screenListeners={{
+        tabPress: () => {
+          void Haptics.selectionAsync();
+        },
       }}
     >
       <Tabs.Screen
@@ -53,14 +42,6 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="bar"
         options={{ title: 'Bar', tabBarIcon: icon('bottle-wine-outline') }}
-      />
-      <Tabs.Screen
-        name="scan"
-        options={{
-          title: 'Scan',
-          tabBarLabel: () => null,
-          tabBarIcon: () => <ScanButton />,
-        }}
       />
       <Tabs.Screen
         name="ask"
@@ -73,21 +54,3 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  scanWrap: {
-    marginTop: -22,
-    // A bg-coloured ring separates the button from whatever scrolls beneath.
-    padding: 4,
-    borderRadius: 31,
-    backgroundColor: colors.bg,
-  },
-  scanButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.raised,
-  },
-});

@@ -1,14 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
+import { Chip } from '../../src/components/Chip';
 import { RecipeCard } from '../../src/components/RecipeCard';
-import { Body, EmptyState, ErrorState, Loading, Muted, Screen, Title } from '../../src/components/ui';
+import {
+  EmptyState,
+  ErrorState,
+  Loading,
+  Muted,
+  PressableScale,
+  Screen,
+  Title,
+} from '../../src/components/ui';
 import { useAvailableIngredientIds } from '../../src/data/bottles';
-import { canMake, useRecipes } from '../../src/data/recipes';
-import { colors, radius, spacing, typography } from '../../src/theme';
+import { canMake, recipeNumbers, useRecipes } from '../../src/data/recipes';
+import { colors, spacing } from '../../src/theme';
 
 type Filter = 'all' | 'makeable' | 'mine' | 'suggested' | 'favorites';
 
@@ -34,6 +43,8 @@ export default function RecipesScreen() {
       setFilter(filterParam as Filter);
     }
   }, [filterParam]);
+
+  const numbers = useMemo(() => recipeNumbers(recipes ?? []), [recipes]);
 
   const visible = useMemo(() => {
     if (!recipes) return [];
@@ -71,12 +82,21 @@ export default function RecipesScreen() {
     <Screen>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <View>
+          <View style={styles.headerText}>
             <Title>Recipes</Title>
             <Muted>
               {recipes?.length ?? 0} saved · {makeableCount} you can make now
             </Muted>
           </View>
+          <PressableScale
+            onPress={() => router.push('/recipe/new')}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Write a recipe"
+            style={styles.headerIcon}
+          >
+            <MaterialCommunityIcons name="plus" size={22} color={colors.textMuted} />
+          </PressableScale>
         </View>
 
         <FlatList
@@ -84,16 +104,14 @@ export default function RecipesScreen() {
           data={FILTERS}
           keyExtractor={(item) => item.key}
           showsHorizontalScrollIndicator={false}
+          style={styles.filterBleed}
           contentContainerStyle={styles.filterRow}
           renderItem={({ item }) => (
-            <Pressable
+            <Chip
+              label={item.label}
+              active={filter === item.key}
               onPress={() => setFilter(item.key)}
-              style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
-            >
-              <Body style={[styles.filterLabel, filter === item.key && styles.filterLabelActive]}>
-                {item.label}
-              </Body>
-            </Pressable>
+            />
           )}
         />
       </View>
@@ -123,87 +141,53 @@ export default function RecipesScreen() {
           )
         }
         renderItem={({ item }) => (
-          <Link href={{ pathname: '/recipe/[id]', params: { id: item.id } }} asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <RecipeCard recipe={item} available={available} />
-            </Pressable>
-          </Link>
+          <PressableScale
+            onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: item.id } })}
+            accessibilityRole="button"
+            accessibilityLabel={item.title}
+          >
+            <RecipeCard recipe={item} available={available} number={numbers.get(item.id)} />
+          </PressableScale>
         )}
       />
-
-      <Pressable
-        style={styles.fab}
-        onPress={() => router.push('/recipe/new')}
-        accessibilityRole="button"
-        accessibilityLabel="Write a recipe"
-      >
-        <MaterialCommunityIcons name="plus" size={26} color={colors.bg} />
-      </Pressable>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.gutter,
+    paddingTop: spacing.md,
     gap: spacing.lg,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  headerText: {
+    gap: spacing.xs,
+  },
+  headerIcon: {
+    paddingTop: spacing.sm,
+  },
+  filterBleed: {
+    marginHorizontal: -spacing.gutter,
+    flexGrow: 0,
   },
   filterRow: {
     gap: spacing.sm,
+    paddingHorizontal: spacing.gutter,
     paddingBottom: spacing.xs,
   },
-  filterChip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
-  },
-  filterChipActive: {
-    backgroundColor: colors.accentDim,
-    borderColor: colors.accent,
-  },
-  filterLabel: {
-    ...typography.small,
-    color: colors.textMuted,
-  },
-  filterLabelActive: {
-    color: colors.accentSoft,
-    fontWeight: '600',
-  },
   listContent: {
-    padding: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: 96,
+    paddingHorizontal: spacing.gutter,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxl,
     gap: spacing.md,
   },
   emptyWrap: {
     flexGrow: 1,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  fab: {
-    position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
   },
 });

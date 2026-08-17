@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   View,
 } from 'react-native';
@@ -12,8 +12,19 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
+import { Chip } from '../../src/components/Chip';
 import { RecipeIngredientList } from '../../src/components/RecipeIngredientList';
-import { Body, Label, Muted, Screen, Title } from '../../src/components/ui';
+import {
+  Body,
+  Card,
+  Flourish,
+  Heading,
+  Label,
+  Muted,
+  Reveal,
+  Screen,
+  Title,
+} from '../../src/components/ui';
 import { useAvailableIngredientIds, useBottles } from '../../src/data/bottles';
 import { useSaveRecipe } from '../../src/data/recipes';
 import {
@@ -21,7 +32,7 @@ import {
   useSuggestCocktails,
   type SuggestedRecipe,
 } from '../../src/data/suggestions';
-import { colors, radius, spacing, typography } from '../../src/theme';
+import { colors, spacing, typography } from '../../src/theme';
 
 const EXAMPLES = [
   'A gin-based dry cocktail with floral notes',
@@ -72,10 +83,7 @@ export default function AskScreen() {
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <View style={styles.headerBadge}>
-              <MaterialCommunityIcons name="creation" size={13} color={colors.accentSoft} />
-              <Label style={styles.headerBadgeText}>Ask Flanagan</Label>
-            </View>
+            <Label>Ask Flanagan</Label>
             <Title>What do you feel like?</Title>
             <Muted>
               Answers come only from the {inStockCount}{' '}
@@ -83,11 +91,11 @@ export default function AskScreen() {
             </Muted>
           </View>
 
-          <View style={styles.inputWrap}>
+          <View style={styles.inputBlock}>
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="A gin-based dry cocktail with floral notes"
+              placeholder="A gin-based dry cocktail with floral notes…"
               placeholderTextColor={colors.textFaint}
               selectionColor={colors.accent}
               multiline
@@ -95,6 +103,7 @@ export default function AskScreen() {
               returnKeyType="search"
               onSubmitEditing={() => ask(query)}
             />
+            <View style={styles.inputRule} />
             <Button
               label={suggest.isPending ? 'Thinking…' : 'Ask'}
               onPress={() => ask(query)}
@@ -108,13 +117,7 @@ export default function AskScreen() {
               <Label>Try</Label>
               <View style={styles.exampleRow}>
                 {EXAMPLES.map((example) => (
-                  <Pressable
-                    key={example}
-                    onPress={() => ask(example)}
-                    style={styles.exampleChip}
-                  >
-                    <Body style={styles.exampleLabel}>{example}</Body>
-                  </Pressable>
+                  <Chip key={example} label={example} onPress={() => ask(example)} />
                 ))}
               </View>
             </View>
@@ -137,7 +140,7 @@ export default function AskScreen() {
           ) : null}
 
           {result && result.recipes.length > 0 ? (
-            <View style={styles.results}>
+            <Reveal style={styles.results}>
               {result.recipes.map((recipe, i) => (
                 <SuggestionCard key={`${recipe.title}-${i}`} recipe={recipe} index={i} available={available} />
               ))}
@@ -155,7 +158,7 @@ export default function AskScreen() {
                 variant="ghost"
                 onPress={() => router.push('/recipes')}
               />
-            </View>
+            </Reveal>
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -191,13 +194,13 @@ function SuggestionCard({
   }
 
   return (
-    <View style={styles.card}>
+    <Card style={styles.card}>
       <View style={styles.cardHeader}>
-        <Body style={styles.cardTitle}>{recipe.title}</Body>
+        <Heading>{recipe.title}</Heading>
         {specs.length > 0 ? <Muted>{specs.join(' · ')}</Muted> : null}
       </View>
 
-      <Muted style={styles.rationale}>{recipe.rationale}</Muted>
+      <Flourish style={styles.rationale}>{recipe.rationale}</Flourish>
 
       <RecipeIngredientList lines={preview.recipe_ingredients} available={available} />
 
@@ -205,7 +208,7 @@ function SuggestionCard({
         <View style={styles.steps}>
           {recipe.instructions.map((step, i) => (
             <View key={`${i}-${step.slice(0, 10)}`} style={styles.step}>
-              <Body style={styles.stepNumber}>{i + 1}</Body>
+              <Text style={styles.stepNumber}>{i + 1}.</Text>
               <Body style={styles.stepText}>{step}</Body>
             </View>
           ))}
@@ -233,76 +236,52 @@ function SuggestionCard({
           {saveRecipe.error instanceof Error ? saveRecipe.error.message : 'Could not save that.'}
         </Body>
       ) : null}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.gutter,
+    paddingTop: spacing.md,
     gap: spacing.xl,
-    paddingBottom: spacing.xxl * 2,
+    paddingBottom: spacing.section + spacing.xl,
   },
   header: {
     gap: spacing.xs,
   },
-  headerBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentGlow,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.accentDim,
-    marginBottom: spacing.xs,
+  inputBlock: {
+    gap: spacing.lg,
   },
-  headerBadgeText: {
-    color: colors.accentSoft,
-  },
-  inputWrap: {
-    gap: spacing.md,
-  },
+  // The prompt is content, so it is set in the serif voice, not a boxed field.
   input: {
-    minHeight: 88,
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    borderRadius: radius.md,
+    fontFamily: 'Fraunces_400Regular',
+    fontSize: 18,
+    lineHeight: 26,
     color: colors.text,
-    fontSize: 16,
-    lineHeight: 22,
+    minHeight: 64,
     textAlignVertical: 'top',
+    paddingTop: spacing.sm,
+  },
+  inputRule: {
+    height: 1,
+    backgroundColor: colors.border,
   },
   examples: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   exampleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
-  },
-  exampleChip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
-  },
-  exampleLabel: {
-    color: colors.textMuted,
   },
   notice: {
     flexDirection: 'row',
     gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radius.md,
+    padding: spacing.lg,
+    borderRadius: 12,
     backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
   },
   noticeText: {
     flex: 1,
@@ -311,22 +290,13 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
-    padding: spacing.lg,
     gap: spacing.md,
   },
   cardHeader: {
     gap: 2,
   },
-  cardTitle: {
-    ...typography.heading,
-    color: colors.text,
-  },
   rationale: {
-    fontStyle: 'italic',
+    color: colors.textMuted,
   },
   steps: {
     gap: spacing.sm,
@@ -336,9 +306,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   stepNumber: {
-    width: 16,
+    ...typography.serifBody,
+    width: 22,
     color: colors.accent,
-    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
   stepText: {
     flex: 1,

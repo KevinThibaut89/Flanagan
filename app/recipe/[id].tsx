@@ -1,21 +1,37 @@
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { Button } from '../../src/components/Button';
+import { ConfirmSheet } from '../../src/components/ConfirmSheet';
 import { RecipeIngredientList } from '../../src/components/RecipeIngredientList';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
-import { Body, Divider, ErrorState, Label, Loading, Muted, Screen } from '../../src/components/ui';
+import {
+  Body,
+  Card,
+  ErrorState,
+  Flourish,
+  Label,
+  Loading,
+  Muted,
+  OrnamentRule,
+  PressableScale,
+  Screen,
+} from '../../src/components/ui';
 import { useAvailableIngredientIds } from '../../src/data/bottles';
 import {
   canMake,
   missingIngredients,
+  recipeNumbers,
   useDeleteRecipe,
   useRecipe,
+  useRecipes,
   useToggleFavorite,
 } from '../../src/data/recipes';
 import { useIngredientIndex } from '../../src/data/ingredients';
-import { colors, radius, spacing } from '../../src/theme';
+import { colors, spacing, typography } from '../../src/theme';
 import type { RecipeIce, RecipeMethod } from '../../src/types/database';
 
 const METHOD_LABELS: Record<RecipeMethod, string> = {
@@ -41,12 +57,29 @@ export default function RecipeDetailScreen() {
   const router = useRouter();
 
   const { data: recipe, isLoading, error, refetch } = useRecipe(id);
+  const { data: allRecipes } = useRecipes();
   const available = useAvailableIngredientIds();
   const { index } = useIngredientIndex();
   const toggleFavorite = useToggleFavorite();
   const deleteRecipe = useDeleteRecipe();
 
-  if (isLoading) return <Loading />;
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const number = useMemo(
+    () => recipeNumbers(allRecipes ?? []).get(id),
+    [allRecipes, id],
+  );
+
+  // The header stays mounted while the body loads, so opening a recipe
+  // doesn't jump the whole layout when the fetch lands.
+  if (isLoading) {
+    return (
+      <Screen edges={['top']}>
+        <ScreenHeader title="Recipe" />
+        <Loading />
+      </Screen>
+    );
+  }
   if (error || !recipe) {
     return (
       <Screen>
@@ -71,50 +104,38 @@ export default function RecipeDetailScreen() {
     recipe.abv_estimate !== null ? `~${recipe.abv_estimate}% ABV` : null,
   ].filter(Boolean) as string[];
 
-  function confirmDelete() {
-    Alert.alert('Delete this recipe?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () =>
-          deleteRecipe.mutate(id, {
-            onSuccess: () => {
-              if (router.canGoBack()) router.back();
-              else router.replace('/recipes');
-            },
-          }),
-      },
-    ]);
-  }
+  const subtitle = [
+    number !== undefined ? `No. ${number}` : null,
+    base ? `${base.name} based` : recipe.source === 'ai' ? 'Suggested' : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <Screen edges={['top']}>
       <ScreenHeader
         title={recipe.title}
-        subtitle={base ? `${base.name} based` : recipe.source === 'ai' ? 'Suggested' : undefined}
+        subtitle={subtitle || undefined}
         action={
-          <Pressable
-            onPress={() => toggleFavorite.mutate({ id, isFavorite: !recipe.is_favorite })}
-            hitSlop={10}
+          <PressableScale
+            onPress={() => {
+              void Haptics.selectionAsync();
+              toggleFavorite.mutate({ id, isFavorite: !recipe.is_favorite });
+            }}
+            hitSlop={8}
             accessibilityLabel={recipe.is_favorite ? 'Remove from favourites' : 'Add to favourites'}
           >
             <MaterialCommunityIcons
               name={recipe.is_favorite ? 'star' : 'star-outline'}
               size={22}
-              color={recipe.is_favorite ? colors.warning : colors.textMuted}
+              color={recipe.is_favorite ? colors.cream : colors.textFaint}
             />
-          </Pressable>
+          </PressableScale>
         }
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View
-          style={[
-            styles.verdict,
-            { borderColor: makeable ? colors.success : colors.border },
-          ]}
-        >
+        <Card style={styles.verdict}>
           <MaterialCommunityIcons
             name={makeable ? 'check-circle-outline' : 'cart-outline'}
             size={20}
@@ -127,7 +148,7 @@ export default function RecipeDetailScreen() {
                 ? 'You’re one ingredient short.'
                 : `You’re short ${missing.length} ingredients.`}
           </Body>
-        </View>
+        </Card>
 
         {specs.length > 0 ? <Muted>{specs.join(' · ')}</Muted> : null}
 
@@ -138,12 +159,12 @@ export default function RecipeDetailScreen() {
 
         {recipe.instructions.length > 0 ? (
           <>
-            <Divider />
+            <OrnamentRule />
             <View style={styles.section}>
               <Label>Method</Label>
               {recipe.instructions.map((step, i) => (
                 <View key={`${i}-${step.slice(0, 12)}`} style={styles.step}>
-                  <Body style={styles.stepNumber}>{i + 1}</Body>
+                  <Text style={styles.stepNumber}>{i + 1}.</Text>
                   <Body style={styles.stepText}>{step}</Body>
                 </View>
               ))}
@@ -175,37 +196,52 @@ export default function RecipeDetailScreen() {
         {recipe.ai_prompt ? (
           <View style={styles.section}>
             <Label>You asked for</Label>
-            <Muted style={styles.quote}>“{recipe.ai_prompt}”</Muted>
+            <Flourish style={styles.quote}>“{recipe.ai_prompt}”</Flourish>
           </View>
         ) : null}
 
-        <Divider />
-
-        <Button
-          label="Edit"
-          variant="secondary"
-          onPress={() => router.push({ pathname: '/recipe/new', params: { editId: id } })}
-        />
-        <Button label="Delete recipe" variant="danger" onPress={confirmDelete} />
+        <View style={styles.actions}>
+          <Button
+            label="Edit"
+            variant="secondary"
+            onPress={() => router.push({ pathname: '/recipe/new', params: { editId: id } })}
+          />
+          <Button label="Delete recipe" variant="ghost" onPress={() => setConfirmingDelete(true)} />
+        </View>
       </ScrollView>
+
+      <ConfirmSheet
+        visible={confirmingDelete}
+        title="Delete this recipe?"
+        message="It leaves the notebook for good — this cannot be undone."
+        confirmLabel="Delete"
+        busy={deleteRecipe.isPending}
+        onCancel={() => setConfirmingDelete(false)}
+        onConfirm={() =>
+          deleteRecipe.mutate(id, {
+            onSuccess: () => {
+              setConfirmingDelete(false);
+              if (router.canGoBack()) router.back();
+              else router.replace('/recipes');
+            },
+          })
+        }
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
-    padding: spacing.lg,
+    padding: spacing.gutter,
     gap: spacing.lg,
-    paddingBottom: spacing.xxl * 2,
+    paddingBottom: spacing.section + spacing.xl,
   },
   verdict: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    backgroundColor: colors.surface,
+    padding: spacing.lg,
   },
   verdictText: {
     flex: 1,
@@ -218,14 +254,19 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   stepNumber: {
-    width: 18,
+    ...typography.serifBody,
+    width: 22,
     color: colors.accent,
-    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
   stepText: {
     flex: 1,
   },
   quote: {
-    fontStyle: 'italic',
+    color: colors.textMuted,
+  },
+  actions: {
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
 });

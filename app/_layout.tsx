@@ -1,8 +1,16 @@
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import {
+  Fraunces_400Regular,
+  Fraunces_400Regular_Italic,
+  Fraunces_500Medium,
+  Fraunces_600SemiBold,
+} from '@expo-google-fonts/fraunces';
 
 import { Loading } from '../src/components/ui';
 import { AuthProvider, useAuth } from '../src/providers/auth';
@@ -50,6 +58,7 @@ function AuthGate() {
     >
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="scan" options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
       <Stack.Screen name="staples" options={{ presentation: 'modal' }} />
     </Stack>
@@ -57,6 +66,20 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
+  // Fraunces carries every title in the app; rendering before it loads would
+  // flash system-font headings, so the whole tree waits behind the same
+  // loading state used for auth.
+  const [fontsLoaded] = useFonts({
+    Fraunces_400Regular,
+    Fraunces_400Regular_Italic,
+    Fraunces_500Medium,
+    Fraunces_600SemiBold,
+  });
+
+  // A bare theme-coloured view, not the styled Loading: that one sets its
+  // labels in Fraunces, which is exactly what has not loaded yet.
+  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>

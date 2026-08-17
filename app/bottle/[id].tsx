@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -10,8 +9,9 @@ import {
   type BottleFormValues,
 } from '../../src/components/BottleForm';
 import { Button } from '../../src/components/Button';
+import { ConfirmSheet } from '../../src/components/ConfirmSheet';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
-import { ErrorState, Loading, Screen } from '../../src/components/ui';
+import { ErrorState, Loading, PressableScale, Screen } from '../../src/components/ui';
 import { useBottle, useDeleteBottle, useUpdateBottle } from '../../src/data/bottles';
 import { colors } from '../../src/theme';
 
@@ -25,6 +25,7 @@ export default function BottleDetailScreen() {
 
   const [values, setValues] = useState<BottleFormValues>(emptyBottleForm);
   const [loaded, setLoaded] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // Seed the form once. Re-seeding on every fetch would stomp on edits in
   // progress whenever the query refetched in the background.
@@ -68,28 +69,16 @@ export default function BottleDetailScreen() {
     );
   }
 
-  function confirmDelete() {
-    Alert.alert(
-      'Remove this bottle?',
-      'It disappears from your bar and from what you can make. This cannot be undone — if you have just finished it, set the status to Finished instead.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () =>
-            deleteBottle.mutate(id, {
-              onSuccess: () => {
-                if (router.canGoBack()) router.back();
-                else router.replace('/');
-              },
-            }),
-        },
-      ],
+  // The header stays mounted while the body loads, so opening a bottle
+  // doesn't jump the whole layout when the fetch lands.
+  if (isLoading) {
+    return (
+      <Screen edges={['top']}>
+        <ScreenHeader title="Bottle" />
+        <Loading />
+      </Screen>
     );
   }
-
-  if (isLoading) return <Loading />;
   if (error || !bottle) {
     return (
       <Screen>
@@ -108,9 +97,13 @@ export default function BottleDetailScreen() {
         title={bottle.name}
         subtitle={bottle.kind === 'staple' ? 'Staple' : bottle.brand}
         action={
-          <Pressable onPress={confirmDelete} hitSlop={10} accessibilityLabel="Remove bottle">
+          <PressableScale
+            onPress={() => setConfirmingDelete(true)}
+            hitSlop={8}
+            accessibilityLabel="Remove bottle"
+          >
             <MaterialCommunityIcons name="trash-can-outline" size={22} color={colors.danger} />
-          </Pressable>
+          </PressableScale>
         }
       />
       <BottleForm
@@ -128,6 +121,24 @@ export default function BottleDetailScreen() {
               onPress={() => setValues({ ...values, status: 'finished', fillPct: 0 })}
             />
           ) : null
+        }
+      />
+
+      <ConfirmSheet
+        visible={confirmingDelete}
+        title="Remove this bottle?"
+        message="It disappears from your bar and from what you can make. If you have just finished it, set the status to Finished instead."
+        confirmLabel="Remove"
+        busy={deleteBottle.isPending}
+        onCancel={() => setConfirmingDelete(false)}
+        onConfirm={() =>
+          deleteBottle.mutate(id, {
+            onSuccess: () => {
+              setConfirmingDelete(false);
+              if (router.canGoBack()) router.back();
+              else router.replace('/');
+            },
+          })
         }
       />
     </Screen>

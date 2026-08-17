@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { colors, radius, spacing, typography } from '../theme';
@@ -9,18 +9,34 @@ interface TextFieldProps extends TextInputProps {
   error?: string | null;
 }
 
+/** The single input idiom: quiet surface, hairline border, copper on focus. */
 export const TextField = forwardRef<TextInput, TextFieldProps>(function TextField(
-  { label, hint, error, style, ...props },
+  { label, hint, error, style, onFocus, onBlur, ...props },
   ref,
 ) {
+  const [focused, setFocused] = useState(false);
+
   return (
     <View style={styles.wrapper}>
-      {label ? <Text style={styles.label}>{label.toUpperCase()}</Text> : null}
+      {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         ref={ref}
         placeholderTextColor={colors.textFaint}
         selectionColor={colors.accent}
-        style={[styles.input, error ? styles.inputError : null, style]}
+        onFocus={(event) => {
+          setFocused(true);
+          onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setFocused(false);
+          onBlur?.(event);
+        }}
+        style={[
+          styles.input,
+          focused && styles.inputFocused,
+          error ? styles.inputError : null,
+          style,
+        ]}
         {...props}
       />
       {error ? (
@@ -37,19 +53,23 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   label: {
-    ...typography.tiny,
+    ...typography.overline,
     color: colors.textFaint,
+    marginBottom: 2,
   },
   input: {
     minHeight: 48,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     color: colors.text,
     fontSize: 16,
+  },
+  inputFocused: {
+    borderColor: colors.accent,
   },
   inputError: {
     borderColor: colors.danger,

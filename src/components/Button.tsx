@@ -1,13 +1,9 @@
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 
-import { colors, radius, spacing } from '../theme';
+import { PressableScale } from './ui';
+import { colors, gradients, radius, spacing } from '../theme';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'md' | 'sm';
@@ -31,53 +27,79 @@ export function Button({
 }) {
   const isInert = disabled || loading;
 
+  function handlePress() {
+    if (variant === 'primary') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress();
+  }
+
+  const content = loading ? (
+    <ActivityIndicator color={variants[variant].text.color} size="small" />
+  ) : (
+    <Text style={[styles.label, size === 'sm' && styles.labelSm, variants[variant].text]}>
+      {label}
+    </Text>
+  );
+
+  const shape = [styles.base, size === 'sm' && styles.sizeSm, isInert && styles.inert];
+
+  // The primary button carries the app's one gradient; everything else is flat.
+  if (variant === 'primary') {
+    return (
+      <PressableScale
+        scaleTo={0.96}
+        onPress={handlePress}
+        disabled={isInert}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: isInert, busy: loading }}
+        style={style}
+      >
+        <LinearGradient
+          colors={gradients.brand}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={shape}
+        >
+          {content}
+        </LinearGradient>
+      </PressableScale>
+    );
+  }
+
   return (
-    <Pressable
+    <PressableScale
+      scaleTo={0.96}
+      onPress={handlePress}
+      disabled={isInert}
       accessibilityRole="button"
       accessibilityState={{ disabled: isInert, busy: loading }}
-      onPress={onPress}
-      disabled={isInert}
-      style={({ pressed }) => [
-        styles.base,
-        size === 'sm' && styles.sizeSm,
-        variants[variant].container,
-        pressed && !isInert && styles.pressed,
-        isInert && styles.inert,
-        style,
-      ]}
+      style={[...shape, variants[variant].container, style]}
     >
-      {loading ? (
-        <ActivityIndicator color={variants[variant].text.color} size="small" />
-      ) : (
-        <Text style={[styles.label, size === 'sm' && styles.labelSm, variants[variant].text]}>
-          {label}
-        </Text>
-      )}
-    </Pressable>
+      {content}
+    </PressableScale>
   );
 }
 
 const variants: Record<Variant, { container: ViewStyle; text: { color: string } }> = {
   primary: {
-    container: { backgroundColor: colors.accent },
+    container: {},
     text: { color: colors.bg },
   },
   secondary: {
     container: {
-      backgroundColor: colors.surfaceRaised,
-      borderWidth: StyleSheet.hairlineWidth,
+      backgroundColor: 'transparent',
+      borderWidth: 1,
       borderColor: colors.border,
     },
     text: { color: colors.text },
   },
   ghost: {
     container: { backgroundColor: 'transparent' },
-    text: { color: colors.accent },
+    text: { color: colors.cream },
   },
   danger: {
     container: {
       backgroundColor: 'transparent',
-      borderWidth: StyleSheet.hairlineWidth,
+      borderWidth: 1,
       borderColor: colors.danger,
     },
     text: { color: colors.danger },
@@ -98,14 +120,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   label: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   labelSm: {
-    fontSize: 14,
-  },
-  pressed: {
-    opacity: 0.75,
+    fontSize: 13,
   },
   inert: {
     opacity: 0.45,
