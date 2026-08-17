@@ -1,4 +1,4 @@
-import Anthropic from 'npm:@anthropic-ai/sdk@^0.117.1';
+import OpenAI from 'npm:openai@^6.9.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { SUGGESTION_SCHEMA, type SuggestedRecipe } from './schema.ts';
@@ -15,9 +15,23 @@ import { toMl } from './units.ts';
  * constraints will still occasionally reach past them — the response is
  * re-checked against that list before it is returned. A confidently suggested
  * drink you cannot make is worse than one fewer suggestion.
+ *
+ * The prompt and model are not in this file. They live in `public.ai_prompts`,
+ * so the bartender can be re-tuned with an UPDATE and no redeploy. What stays
+ * here is everything that has to be code: gathering the inventory, and refusing
+ * to return a drink that cannot be poured.
  */
 
-const MODEL = 'claude-opus-5';
+/** Which `ai_prompts` row configures this function. */
+const PROMPT_KEY = 'suggest_cocktails';
+
+interface PromptConfig {
+  system_prompt: string;
+  model: string;
+  max_output_tokens: number;
+  reasoning_effort: 'minimal' | 'low' | 'medium' | 'high' | null;
+  version: number;
+}
 
 interface AvailableIngredient {
   slug: string;
@@ -40,8 +54,8 @@ Deno.serve(async (request: Request) => {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader) return json({ error: 'Missing Authorization header.' }, 401);
 
-  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
-  if (!anthropicKey) {
+  const openaiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiKey) {
     return json({ error: 'The suggestion service is not configured.' }, 500);
   }
 
@@ -134,8 +148,23 @@ Deno.serve(async (request: Request) => {
 
   const availableSlugs = new Set(available.map((row) => row.slug));
 
-  // ── Ask Claude ─────────────────────────────────────────────────────────────
-  const anthropic = new Anthropic({ apiKey: anthropicKey });
+  // ── The configured prompt ──────────────────────────────────────────────────
+  // Read after the empty-bar return above, so a drinker with nothing in stock
+  // doesn't pay for a query whose answer is thrown away.
+  const { data: config, error: configError } = await admin
+    .from('ai_prompts')
+    .select('system_prompt, model, max_output_tokens, reasoning_effort, version')
+    .eq('key', PROMPT_KEY)
+    .eq('is_active', true)
+    .maybeSingle<PromptConfig>();
+
+  if (configError || !config) {
+    console.error(`No active ai_prompts row for "${PROMPT_KEY}"`, configError);
+    return json({ error: 'The suggestion service is not configured.' }, 500);
+  }
+
+  // ── Ask OpenAI ─────────────────────────────────────────────────────────────
+  const openai = new OpenAI({ apiKey: openaiKey });
 
   const owned = available.filter((row) => row.label);
   const generic = available.filter((row) => !row.label);
@@ -148,53 +177,60 @@ Deno.serve(async (request: Request) => {
     ...generic.map((row) => `- ${row.slug} (${row.name})`),
   ].join('\n');
 
-  const system = [
-    'You are a bartender helping someone make a drink from what is already in their home bar.',
-    '',
-    'Rules:',
-    '- Only use ingredient slugs from the list you are given. Every required, non-garnish line must be one they have. There are no exceptions to this: a drink they cannot pour is worthless to them.',
-    '- If the request cannot be honoured with what they have, return the closest drinks that can be, and say so in the rationale. Do not invent an ingredient to make a classic work.',
-    '- Prefer classics and recognised riffs over invention. Name them properly. Invent only when nothing established fits.',
-    '- Honour the request precisely: the spirit named, the style asked for, the flavour profile described.',
-    '- Give exact quantities. Volumes in ml. Bitters in dashes. Small measures in barspoons. Whole items (an egg white, a wedge) as pieces. Use the "top" unit with amount 0 for topping up with soda or sparkling wine.',
-    '- Always specify glass, method, ice, and garnish. An empty garnish string is fine when the drink genuinely takes none.',
-    '- Mark garnishes and truly optional lines with the flags, so they are not counted against availability.',
-    '- Reply in the language the request is written in.',
-    '',
-    inventoryBlock,
-  ].join('\n');
+  // A hand-edited prompt that lost its placeholder must not silently become a
+  // prompt with no inventory — the model would then have nothing to work from
+  // and every suggestion would fail the availability check below. Appending is
+  // the safe reading of the intent.
+  const hasPlaceholder = config.system_prompt.includes('{{INVENTORY}}');
+  if (!hasPlaceholder) {
+    console.warn(
+      `ai_prompts "${PROMPT_KEY}" v${config.version} has no {{INVENTORY}} placeholder; appending the list.`,
+    );
+  }
+  const system = hasPlaceholder
+    ? config.system_prompt.replaceAll('{{INVENTORY}}', inventoryBlock)
+    : `${config.system_prompt}\n\n${inventoryBlock}`;
 
   let response;
   try {
-    response = await anthropic.beta.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      // Fallbacks are opt-in: without them a safety decline simply stops. Cocktail
-      // requests are not the sort of thing classifiers trip on, but a dead-end
-      // response is a bad experience for the sake of one parameter.
-      //
-      // If the API ever rejects this combination, these two lines are the first
-      // thing to drop — switch to `anthropic.messages.create` and everything
-      // else here works unchanged.
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      system,
-      output_config: {
-        // Recipe selection is recall and taste, not deep reasoning; medium keeps
-        // it quick and cheap. Raise if suggestions feel shallow.
-        effort: 'medium',
-        format: { type: 'json_schema', schema: SUGGESTION_SCHEMA },
+    response = await openai.responses.create({
+      model: config.model,
+      max_output_tokens: config.max_output_tokens,
+      instructions: system,
+      input: query,
+      // Reasoning models only; null in the config means omit it, because passing
+      // it to a model that has no reasoning is an error rather than a no-op.
+      ...(config.reasoning_effort ? { reasoning: { effort: config.reasoning_effort } } : {}),
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'cocktail_suggestions',
+          strict: true,
+          schema: SUGGESTION_SCHEMA,
+        },
       },
-      messages: [{ role: 'user', content: query }],
     });
   } catch (cause) {
-    console.error('Claude request failed', cause);
+    console.error('OpenAI request failed', cause);
     return json({ error: 'Could not reach the suggestion service. Try again in a moment.' }, 502);
   }
 
-  // Always check why generation stopped before reading content: a refusal
-  // returns HTTP 200 with an empty or partial body.
-  if (response.stop_reason === 'refusal') {
+  const usage = response.usage;
+  console.log(
+    `suggest-cocktails: in=${usage?.input_tokens} out=${usage?.output_tokens} ` +
+      `model=${response.model} prompt=v${config.version}`,
+  );
+
+  // Always establish how generation ended before reading content: a decline or a
+  // truncation both come back as HTTP 200 with an empty or partial body.
+  const refused = response.output.some(
+    (item) =>
+      item.type === 'message' &&
+      item.content.some((part: { type: string }) => part.type === 'refusal'),
+  );
+  const filtered = response.incomplete_details?.reason === 'content_filter';
+
+  if (refused || filtered) {
     return json({
       recipes: [],
       rejected: 0,
@@ -202,26 +238,25 @@ Deno.serve(async (request: Request) => {
     });
   }
 
-  const usage = response.usage;
-  console.log(
-    `suggest-cocktails: in=${usage?.input_tokens} out=${usage?.output_tokens} model=${response.model}`,
-  );
+  if (response.status === 'incomplete') {
+    // Almost always max_output_tokens. Raising it is a config change, so say
+    // which reason it was rather than making someone guess from the symptom.
+    console.error(`Response incomplete: ${response.incomplete_details?.reason ?? 'unknown'}`);
+    return json({ error: 'The suggestion service returned nothing usable.' }, 502);
+  }
 
-  const textBlock = response.content.find(
-    (block: { type: string }) => block.type === 'text',
-  ) as { text: string } | undefined;
-
-  if (!textBlock?.text) {
+  const text = response.output_text;
+  if (!text) {
     return json({ error: 'The suggestion service returned nothing usable.' }, 502);
   }
 
   let parsed: { recipes: SuggestedRecipe[] };
   try {
-    parsed = JSON.parse(textBlock.text);
+    parsed = JSON.parse(text);
   } catch {
     // Structured outputs make this near-impossible, but a malformed body should
     // not surface as a crash.
-    console.error('Unparseable model output', textBlock.text.slice(0, 500));
+    console.error('Unparseable model output', text.slice(0, 500));
     return json({ error: 'The suggestion service returned an unreadable answer.' }, 502);
   }
 
@@ -242,7 +277,7 @@ Deno.serve(async (request: Request) => {
       continue;
     }
 
-    accepted.push(toDraft(recipe, bySlug, query));
+    accepted.push(toDraft(recipe, bySlug, query, config.model));
   }
 
   return json({
@@ -264,6 +299,7 @@ function toDraft(
   recipe: SuggestedRecipe,
   bySlug: Map<string, { id: string; slug: string }>,
   prompt: string,
+  model: string,
 ) {
   return {
     title: recipe.title,
@@ -280,7 +316,7 @@ function toDraft(
     abv_estimate: Number.isFinite(recipe.abv_estimate) ? recipe.abv_estimate : null,
     servings: recipe.servings > 0 ? recipe.servings : 1,
     ai_prompt: prompt,
-    ai_model: MODEL,
+    ai_model: model,
     ingredients: recipe.ingredients.map((line) => {
       const ingredient = bySlug.get(line.ingredient);
       return {

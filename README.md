@@ -10,7 +10,7 @@ A personal mixology app: your bottles, and what they can make tonight.
 - **Recipes** — suggestions you save and recipes you write yourself, in one
   shared format, filterable by what's makeable right now.
 
-Expo (iOS + Android) · Supabase (Postgres, auth, edge functions) · Claude.
+Expo (iOS + Android) · Supabase (Postgres, auth, edge functions) · OpenAI.
 
 ---
 
@@ -22,7 +22,8 @@ Expo app
   │                               Auth (email six-digit code)
   └── functions.invoke() ──────►  Edge functions (Deno)
                                    ├── lookup-barcode   → Open Food Facts
-                                   └── suggest-cocktails → Claude
+                                   └── suggest-cocktails → OpenAI
+                                        (prompt + model from `ai_prompts`)
 ```
 
 Two ideas carry most of the design:
@@ -50,13 +51,13 @@ The Supabase project (`qhmovlrsmwlkfgypwglr`, eu-west-2) is already provisioned:
 migrations applied, 177 ingredients seeded, row-level security on every table,
 and both edge functions deployed. Three things remain.
 
-### 1. The Anthropic key
+### 1. The OpenAI key
 
 The only outstanding piece, and the one the Ask tab needs:
 
 ```sh
 supabase link --project-ref qhmovlrsmwlkfgypwglr
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+supabase secrets set OPENAI_API_KEY=sk-...
 ```
 
 Or set it under **Edge Functions → Secrets** in the dashboard. It lives there and
@@ -134,11 +135,19 @@ supabase functions deploy suggest-cocktails
 
 ## Notes
 
-- **`suggest-cocktails` verifies the model.** Claude is given the exact list of
+- **`suggest-cocktails` verifies the model.** OpenAI is given the exact list of
   ingredient slugs you have and told to use nothing else, and the response is
   then re-checked against that list server-side. Recipes needing something you
   don't have are dropped and counted, not quietly served. A drink you can't pour
   is worse than one fewer suggestion.
+- **The prompt is data, not code.** The bartender's system prompt, the model, the
+  token cap and the reasoning effort all live in `public.ai_prompts`, keyed by
+  call site. Re-tuning is an `UPDATE` with no redeploy — insert a new `version`
+  and flip `is_active` to keep the old wording around to compare against. The
+  `{{INVENTORY}}` placeholder in the prompt is where the list of what you own
+  gets substituted; drop it and the function appends the list anyway rather than
+  ask a model to guess. The table is deliberately unreadable to the app: only the
+  edge function's service-role client sees it.
 - **The barcode catalogue is shared.** Resolving a barcode once — from Open Food
   Facts or by filling the form in yourself — writes a `products` row, so the next
   scan of that bottle is instant. Open Food Facts coverage of spirits is patchy;
