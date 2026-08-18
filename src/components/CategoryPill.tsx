@@ -1,6 +1,8 @@
+import { useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { categoryColors, radius, spacing } from '../theme';
+import { useTheme } from '../providers/theme';
+import { radius, spacing } from '../theme';
 import type { IngredientKind } from '../types/database';
 
 const KIND_LABELS: Record<IngredientKind, string> = {
@@ -20,9 +22,18 @@ const KIND_LABELS: Record<IngredientKind, string> = {
 };
 
 /** Maps an ingredient kind to its accent colour, falling back to a neutral. */
-export function colorForKind(kind: IngredientKind | null | undefined): string {
+export function colorForKind(
+  kind: IngredientKind | null | undefined,
+  categoryColors: Record<string, string>,
+): string {
   if (!kind) return categoryColors.other;
   return categoryColors[kind] ?? categoryColors.other;
+}
+
+/** `colorForKind` bound to the current theme's category palette. */
+export function useColorForKind(): (kind: IngredientKind | null | undefined) => string {
+  const { categoryColors } = useTheme();
+  return useCallback((kind) => colorForKind(kind, categoryColors), [categoryColors]);
 }
 
 export function labelForKind(kind: IngredientKind | null | undefined): string {
@@ -30,7 +41,7 @@ export function labelForKind(kind: IngredientKind | null | undefined): string {
 }
 
 export function CategoryPill({ kind }: { kind: IngredientKind | null | undefined }) {
-  const color = colorForKind(kind);
+  const color = useColorForKind()(kind);
   return (
     <View style={[styles.pill, { borderColor: color }]}>
       <Text style={[styles.text, { color }]}>{labelForKind(kind)}</Text>

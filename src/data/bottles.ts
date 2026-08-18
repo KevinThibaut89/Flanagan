@@ -91,6 +91,30 @@ export function useAddBottle() {
   });
 }
 
+/**
+ * Adds several bottles in one insert — the shelf-photo review screen commits
+ * its ticked rows through here. One round trip and one invalidation, and the
+ * whole batch lands or none of it does.
+ */
+export function useAddBottles() {
+  const { user } = useAuth();
+  const invalidate = useInvalidateInventory();
+
+  return useMutation({
+    mutationFn: async (inputs: Array<Omit<BottleInsert, 'user_id'>>): Promise<Bottle[]> => {
+      if (!user) throw new Error('Not signed in.');
+      if (inputs.length === 0) return [];
+      const { data, error } = await supabase
+        .from('bottles')
+        .insert(inputs.map((input) => ({ ...input, user_id: user.id })))
+        .select();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: invalidate,
+  });
+}
+
 export function useUpdateBottle() {
   const queryClient = useQueryClient();
   const invalidate = useInvalidateInventory();

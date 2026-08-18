@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
 import { Chip } from '../../src/components/Chip';
-import { colorForKind } from '../../src/components/CategoryPill';
+import { useColorForKind } from '../../src/components/CategoryPill';
 import { ConfirmSheet } from '../../src/components/ConfirmSheet';
 import { SwipeableRow, type SwipeSide } from '../../src/components/SwipeableRow';
 import {
@@ -22,7 +22,8 @@ import { useBottles, useDeleteBottle, useUpdateBottle } from '../../src/data/bot
 import { useIngredientIndex } from '../../src/data/ingredients';
 import { formatBottleSize } from '../../src/lib/units';
 import { useUnits } from '../../src/providers/preferences';
-import { colors, radius, spacing, typography } from '../../src/theme';
+import { useTheme, useThemedStyles } from '../../src/providers/theme';
+import { radius, spacing, typography, type Theme } from '../../src/theme';
 import type { Bottle, IngredientKind } from '../../src/types/database';
 
 type Filter = 'all' | 'bottles' | 'staples' | 'out';
@@ -38,6 +39,8 @@ const FILTERS: Array<{ key: Filter; label: string }> = [
 const LOW_FILL_PCT = 25;
 
 export default function BarScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const units = useUnits();
   const { data: bottles, isLoading, error, refetch, isRefetching } = useBottles();
@@ -261,6 +264,8 @@ function HeaderIcon({
   label: string;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <PressableScale
       onPress={onPress}
@@ -285,6 +290,9 @@ function BottleRow({
   units: 'metric' | 'imperial';
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const colorForKind = useColorForKind();
   const size = formatBottleSize(bottle.volume_ml, units);
   const isOut = bottle.status !== 'in_stock';
   const isLow = !isOut && bottle.fill_pct <= LOW_FILL_PCT;
@@ -339,7 +347,7 @@ function BottleRow({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) => StyleSheet.create({
   header: {
     paddingHorizontal: spacing.gutter,
     paddingTop: spacing.md,

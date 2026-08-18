@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, type ColorValue } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { colors } from '../../src/theme';
+import { useTheme } from '../../src/providers/theme';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -15,6 +15,7 @@ function icon(name: IconName) {
 }
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{

@@ -25,7 +25,8 @@ import {
   useRecipes,
   type RecipeWithIngredients,
 } from '../../src/data/recipes';
-import { colors, radius, spacing } from '../../src/theme';
+import { useTheme } from '../../src/providers/theme';
+import { radius, spacing } from '../../src/theme';
 
 type Filter = 'all' | 'makeable' | 'mine' | 'suggested' | 'favorites';
 
@@ -38,6 +39,7 @@ const FILTERS: Array<{ key: Filter; label: string }> = [
 ];
 
 export default function RecipesScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const { data: recipes, isLoading, error, refetch, isRefetching } = useRecipes();
   const available = useAvailableIngredientIds();

@@ -2,7 +2,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { PressableScale } from './ui';
-import { colors, radius, spacing } from '../theme';
+import { useThemedStyles } from '../providers/theme';
+import { radius, spacing, type Theme } from '../theme';
 
 /**
  * The one chip in the app: text only, hairline border, copper text when
@@ -21,6 +22,7 @@ export function Chip({
   active?: boolean;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const showCount = typeof count === 'number' && count > 0;
 
   return (
@@ -44,7 +46,8 @@ export function Chip({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) =>
+  StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -87,4 +90,4 @@ const styles = StyleSheet.create({
   badgeTextActive: {
     color: colors.bg,
   },
-});
+  });

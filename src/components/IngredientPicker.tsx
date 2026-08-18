@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { colorForKind, labelForKind } from './CategoryPill';
+import { labelForKind, useColorForKind } from './CategoryPill';
 import { Body, Label, Muted, Screen } from './ui';
 import { useBottles } from '../data/bottles';
 import { useIngredientIndex, useIngredients } from '../data/ingredients';
-import { colors, radius, spacing } from '../theme';
+import { useTheme, useThemedStyles } from '../providers/theme';
+import { radius, spacing, type Theme } from '../theme';
 import type { Ingredient } from '../types/database';
 
 /**
@@ -43,6 +44,9 @@ export function IngredientPicker({
    */
   onFreeText?: (text: string) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const colorForKind = useColorForKind();
   const [open, setOpen] = useState(false);
   const { index } = useIngredientIndex();
 
@@ -113,7 +117,12 @@ export function IngredientPicker({
   );
 }
 
-function IngredientSearchModal({
+/**
+ * The search sheet behind the picker, exported on its own for screens that
+ * already render the field their own way (the shelf-photo review list) but
+ * want the same search, grouping, and "on your shelf" ordering.
+ */
+export function IngredientSearchModal({
   visible,
   onClose,
   onSelect,
@@ -124,6 +133,9 @@ function IngredientSearchModal({
   onSelect: (ingredient: Ingredient) => void;
   onFreeText?: (text: string) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const colorForKind = useColorForKind();
   const [term, setTerm] = useState('');
   const { data: all } = useIngredients();
   const { index } = useIngredientIndex();
@@ -261,7 +273,8 @@ function IngredientSearchModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) =>
+  StyleSheet.create({
   field: {
     gap: spacing.xs,
   },
@@ -350,4 +363,4 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
     alignItems: 'center',
   },
-});
+  });

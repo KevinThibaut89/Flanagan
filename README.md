@@ -7,9 +7,9 @@ A personal mixology app: your bottles, and what they can make tonight.
   running low, and shortcuts. Everything deep-links into the right
   pre-filtered view. Scanning lives here and in the Bar header — it is an
   inventory chore, not a tab.
-- **Bar** — your inventory, added by scanning barcodes or by hand, plus the
-  everyday staples (limes, syrup, soda) that decide whether a drink is actually
-  possible.
+- **Bar** — your inventory, added by scanning barcodes, photographing a whole
+  shelf, or by hand, plus the everyday staples (limes, syrup, soda) that decide
+  whether a drink is actually possible.
 - **Ask** — describe what you feel like ("a gin-based dry cocktail with floral
   notes") and get cocktails you can pour from what is in stock.
 - **Recipes** — suggestions you save and recipes you write yourself, in one
@@ -26,7 +26,9 @@ Expo app
   ├── supabase-js ─────────────►  Postgres (row-level security, per user)
   │                               Auth (email six-digit code)
   └── functions.invoke() ──────►  Edge functions (Deno)
-                                   ├── lookup-barcode   → Open Food Facts
+                                   ├── lookup-barcode    → Open Food Facts
+                                   ├── classify-bottle   → OpenAI
+                                   ├── identify-bottles  → OpenAI (vision)
                                    └── suggest-cocktails → OpenAI
                                         (prompt + model from `ai_prompts`)
 ```
@@ -92,7 +94,9 @@ npx expo start
 ```
 
 Barcode scanning needs real camera hardware, so use a device rather than a
-simulator.
+simulator. The shelf-photo library picker (`expo-image-picker`) is a native
+module: any build made before it was added needs rebuilding (`eas build` or
+`npx expo run:ios`) before that button works — an OTA update alone won't add it.
 
 > **This project is pinned to Expo SDK 54, and the pin is not a preference.**
 >
@@ -133,6 +137,8 @@ Everything is reproducible from the repo:
 ```sh
 supabase db push                      # all migrations, in order
 supabase functions deploy lookup-barcode
+supabase functions deploy classify-bottle
+supabase functions deploy identify-bottles
 supabase functions deploy suggest-cocktails
 ```
 
@@ -153,6 +159,14 @@ supabase functions deploy suggest-cocktails
   gets substituted; drop it and the function appends the list anyway rather than
   ask a model to guess. The table is deliberately unreadable to the app: only the
   edge function's service-role client sees it.
+- **A shelf photo is a prefill, not an import.** The scanner's *Shelf* mode
+  sends one photo (taken there, or picked from the library) to
+  `identify-bottles`, which lists every bottle it can read a label for and pins
+  each to an ingredient slug under the same rules as `classify-bottle`. What
+  comes back is a review list: doubtful readings and bottles already on the
+  shelf start unticked, "counts as" is a tap away from being changed, and only
+  the ticked rows are inserted — in one batch, when you say so. The photo is not
+  stored anywhere.
 - **The barcode catalogue is shared.** Resolving a barcode once — from Open Food
   Facts or by filling the form in yourself — writes a `products` row, so the next
   scan of that bottle is instant. Open Food Facts coverage of spirits is patchy;

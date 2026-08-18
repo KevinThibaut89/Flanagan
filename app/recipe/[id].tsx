@@ -31,7 +31,8 @@ import {
   useToggleFavorite,
 } from '../../src/data/recipes';
 import { useIngredientIndex } from '../../src/data/ingredients';
-import { colors, spacing, typography } from '../../src/theme';
+import { useTheme, useThemedStyles } from '../../src/providers/theme';
+import { spacing, typography, type Theme } from '../../src/theme';
 import type { RecipeIce, RecipeMethod } from '../../src/types/database';
 
 const METHOD_LABELS: Record<RecipeMethod, string> = {
@@ -55,6 +56,8 @@ const ICE_LABELS: Record<RecipeIce, string> = {
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   const { data: recipe, isLoading, error, refetch } = useRecipe(id);
   const { data: allRecipes } = useRecipes();
@@ -231,7 +234,7 @@ export default function RecipeDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) => StyleSheet.create({
   content: {
     padding: spacing.gutter,
     gap: spacing.lg,

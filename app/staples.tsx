@@ -8,7 +8,8 @@ import { labelForKind } from '../src/components/CategoryPill';
 import { Body, Label, Loading, Muted, PressableScale, Screen, Title } from '../src/components/ui';
 import { useBottles, useToggleStaple } from '../src/data/bottles';
 import { useStapleIngredients } from '../src/data/ingredients';
-import { colors, spacing } from '../src/theme';
+import { useTheme, useThemedStyles } from '../src/providers/theme';
+import { spacing, type Theme } from '../src/theme';
 import type { Ingredient, IngredientKind } from '../src/types/database';
 
 /**
@@ -18,6 +19,8 @@ import type { Ingredient, IngredientKind } from '../src/types/database';
  */
 export default function StaplesScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { staples, isLoading } = useStapleIngredients();
   const { data: bottles } = useBottles();
   const toggle = useToggleStaple();
@@ -89,7 +92,7 @@ export default function StaplesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',

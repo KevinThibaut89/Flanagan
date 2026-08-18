@@ -3,7 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 import { PressableScale } from './ui';
-import { colors, gradients, radius, spacing } from '../theme';
+import { useTheme, useThemedStyles } from '../providers/theme';
+import { radius, spacing, type Theme } from '../theme';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'md' | 'sm';
@@ -25,6 +26,8 @@ export function Button({
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
+  const { gradients } = useTheme();
+  const variants = useThemedStyles(makeVariants);
   const isInert = disabled || loading;
 
   function handlePress() {
@@ -79,7 +82,9 @@ export function Button({
   );
 }
 
-const variants: Record<Variant, { container: ViewStyle; text: { color: string } }> = {
+const makeVariants = ({
+  colors,
+}: Theme): Record<Variant, { container: ViewStyle; text: { color: string } }> => ({
   primary: {
     container: {},
     text: { color: colors.bg },
@@ -104,7 +109,7 @@ const variants: Record<Variant, { container: ViewStyle; text: { color: string } 
     },
     text: { color: colors.danger },
   },
-};
+});
 
 const styles = StyleSheet.create({
   base: {

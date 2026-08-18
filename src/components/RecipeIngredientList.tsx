@@ -5,7 +5,8 @@ import { Body, Muted } from './ui';
 import { useIngredientIndex } from '../data/ingredients';
 import { formatAmount, isTopUp } from '../lib/units';
 import { useUnits } from '../providers/preferences';
-import { colors, spacing } from '../theme';
+import { useTheme, useThemedStyles } from '../providers/theme';
+import { spacing, type Theme } from '../theme';
 import type { RecipeIngredient } from '../types/database';
 
 /**
@@ -23,6 +24,8 @@ export function RecipeIngredientList({
   lines: RecipeIngredient[];
   available: Set<string>;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { index } = useIngredientIndex();
   const units = useUnits();
 
@@ -71,7 +74,8 @@ export function RecipeIngredientList({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) =>
+  StyleSheet.create({
   list: {
     gap: spacing.md,
   },
@@ -101,4 +105,4 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textFaint,
   },
-});
+  });

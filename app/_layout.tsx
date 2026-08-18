@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -15,7 +15,13 @@ import {
 import { Loading } from '../src/components/ui';
 import { AuthProvider, useAuth } from '../src/providers/auth';
 import { PreferencesProvider } from '../src/providers/preferences';
-import { colors } from '../src/theme';
+import {
+  ThemeProvider,
+  loadThemePreference,
+  useTheme,
+  type ThemePreference,
+} from '../src/providers/theme';
+import { darkTheme } from '../src/theme';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +39,7 @@ const queryClient = new QueryClient({
  */
 function AuthGate() {
   const { session, loading } = useAuth();
+  const { colors, scheme } = useTheme();
   const segments = useSegments();
   const router = useRouter();
 
@@ -47,21 +54,26 @@ function AuthGate() {
     }
   }, [session, loading, segments, router]);
 
-  if (loading) return <Loading />;
-
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.bg },
-      }}
-    >
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="scan" options={{ presentation: 'fullScreenModal' }} />
-      <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="staples" options={{ presentation: 'modal' }} />
-    </Stack>
+    <>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      {loading ? (
+        <Loading />
+      ) : (
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.bg },
+          }}
+        >
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="scan" options={{ presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="staples" options={{ presentation: 'modal' }} />
+        </Stack>
+      )}
+    </>
   );
 }
 
@@ -76,20 +88,31 @@ export default function RootLayout() {
     Fraunces_600SemiBold,
   });
 
+  // The theme choice is read before first paint for the same reason: a
+  // light-mode user should never see a dark frame settle into parchment.
+  const [themePreference, setThemePreference] = useState<ThemePreference | null>(null);
+  useEffect(() => {
+    void loadThemePreference().then(setThemePreference);
+  }, []);
+
   // A bare theme-coloured view, not the styled Loading: that one sets its
-  // labels in Fraunces, which is exactly what has not loaded yet.
-  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+  // labels in Fraunces, which is exactly what has not loaded yet. This sits
+  // outside every provider, so it can only paint the default scheme.
+  if (!fontsLoaded || !themePreference) {
+    return <View style={{ flex: 1, backgroundColor: darkTheme.colors.bg }} />;
+  }
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <PreferencesProvider>
-            <StatusBar style="light" />
-            <AuthGate />
-          </PreferencesProvider>
-        </AuthProvider>
-      </QueryClientProvider>
+      <ThemeProvider initialPreference={themePreference}>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <PreferencesProvider>
+              <AuthGate />
+            </PreferencesProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

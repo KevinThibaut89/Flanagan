@@ -17,7 +17,8 @@ import { TextField } from '../../src/components/TextField';
 import { Body, Label, Loading, Muted, PressableScale, Screen } from '../../src/components/ui';
 import { useIngredientIndex } from '../../src/data/ingredients';
 import { useRecipe, useSaveRecipe, useUpdateRecipe } from '../../src/data/recipes';
-import { colors, spacing, typography } from '../../src/theme';
+import { useTheme, useThemedStyles } from '../../src/providers/theme';
+import { spacing, typography, type Theme } from '../../src/theme';
 import type { RecipeIce, RecipeMethod } from '../../src/types/database';
 
 const METHODS: Array<{ value: RecipeMethod; label: string }> = [
@@ -44,6 +45,8 @@ const ICES: Array<{ value: RecipeIce; label: string }> = [
  */
 export default function RecipeEditorScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { editId } = useLocalSearchParams<{ editId?: string }>();
   const isEditing = Boolean(editId);
 
@@ -342,7 +345,7 @@ export default function RecipeEditorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) => StyleSheet.create({
   flex: { flex: 1 },
   content: {
     padding: spacing.gutter,

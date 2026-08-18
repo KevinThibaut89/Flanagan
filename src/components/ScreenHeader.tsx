@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Heading, Muted, PressableScale } from './ui';
-import { colors, spacing } from '../theme';
+import { useTheme, useThemedStyles } from '../providers/theme';
+import { spacing, type Theme } from '../theme';
 
 export function ScreenHeader({
   title,
@@ -17,6 +18,8 @@ export function ScreenHeader({
   action?: ReactNode;
   onBack?: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
 
   return (
@@ -41,7 +44,8 @@ export function ScreenHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) =>
+  StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -63,4 +67,4 @@ const styles = StyleSheet.create({
   action: {
     alignItems: 'flex-end',
   },
-});
+  });

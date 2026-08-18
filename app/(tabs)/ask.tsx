@@ -32,7 +32,8 @@ import {
   useSuggestCocktails,
   type SuggestedRecipe,
 } from '../../src/data/suggestions';
-import { colors, spacing, typography } from '../../src/theme';
+import { useTheme, useThemedStyles } from '../../src/providers/theme';
+import { spacing, typography, type Theme } from '../../src/theme';
 
 const EXAMPLES = [
   'A gin-based dry cocktail with floral notes',
@@ -42,6 +43,8 @@ const EXAMPLES = [
 ];
 
 export default function AskScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const [query, setQuery] = useState('');
 
@@ -175,6 +178,7 @@ function SuggestionCard({
   index: number;
   available: Set<string>;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const saveRecipe = useSaveRecipe();
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -240,7 +244,7 @@ function SuggestionCard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) => StyleSheet.create({
   flex: { flex: 1 },
   content: {
     paddingHorizontal: spacing.gutter,

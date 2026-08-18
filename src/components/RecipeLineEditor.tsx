@@ -5,7 +5,8 @@ import * as Haptics from 'expo-haptics';
 import { IngredientPicker } from './IngredientPicker';
 import { Body, Muted, PressableScale } from './ui';
 import { toMl } from '../lib/units';
-import { colors, radius, spacing } from '../theme';
+import { useTheme, useThemedStyles } from '../providers/theme';
+import { radius, spacing, type Theme } from '../theme';
 import type { MeasureUnit, RecipeIngredientInsert } from '../types/database';
 
 /** One editable ingredient line. `key` is local only — React needs a stable id
@@ -66,6 +67,8 @@ export function RecipeLineEditor({
   onChange: (update: RecipeLineUpdate) => void;
   onRemove: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   function set<K extends keyof RecipeLineDraft>(key: K, value: RecipeLineDraft[K]) {
     onChange((current) => ({ ...current, [key]: value }));
   }
@@ -151,6 +154,8 @@ function Toggle({
   active: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <PressableScale
       onPress={() => {
@@ -200,7 +205,8 @@ export function lineToRow(line: RecipeLineDraft): Omit<RecipeIngredientInsert, '
   };
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) =>
+  StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,
@@ -266,4 +272,4 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.warning,
   },
-});
+  });

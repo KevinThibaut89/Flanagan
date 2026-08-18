@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
-import { colors, radius, spacing, typography } from '../theme';
+import { useTheme, useThemedStyles } from '../providers/theme';
+import { radius, spacing, typography, type Theme } from '../theme';
 
 /** Text primitives forward the rest of TextProps so callers can set
  * `numberOfLines`, accessibility props, and so on. */
@@ -28,6 +29,7 @@ export function Screen({
   edges?: Edge[];
   style?: StyleProp<ViewStyle>;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <SafeAreaView edges={edges} style={[styles.screen, style]}>
       {children}
@@ -42,10 +44,12 @@ export function Card({
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
 export function Display({ children, style, ...props }: TypographyProps) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Text style={[styles.display, style]} {...props}>
       {children}
@@ -54,6 +58,7 @@ export function Display({ children, style, ...props }: TypographyProps) {
 }
 
 export function Title({ children, style, ...props }: TypographyProps) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Text style={[styles.title, style]} {...props}>
       {children}
@@ -62,6 +67,7 @@ export function Title({ children, style, ...props }: TypographyProps) {
 }
 
 export function Heading({ children, style, ...props }: TypographyProps) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Text style={[styles.heading, style]} {...props}>
       {children}
@@ -70,6 +76,7 @@ export function Heading({ children, style, ...props }: TypographyProps) {
 }
 
 export function Body({ children, style, ...props }: TypographyProps) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Text style={[styles.body, style]} {...props}>
       {children}
@@ -78,6 +85,7 @@ export function Body({ children, style, ...props }: TypographyProps) {
 }
 
 export function Muted({ children, style, ...props }: TypographyProps) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Text style={[styles.muted, style]} {...props}>
       {children}
@@ -87,6 +95,7 @@ export function Muted({ children, style, ...props }: TypographyProps) {
 
 /** Letterspaced uppercase label used for section headers and field labels. */
 export function Label({ children, style, ...props }: TypographyProps) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Text style={[styles.label, style]} {...props}>
       {children}
@@ -96,6 +105,7 @@ export function Label({ children, style, ...props }: TypographyProps) {
 
 /** Fraunces italic — invitations, "No. 12", empty-state lines. */
 export function Flourish({ children, style, ...props }: TypographyProps) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Text style={[styles.flourish, style]} {...props}>
       {children}
@@ -194,6 +204,7 @@ export function SectionHeader({
   actionLabel?: string;
   onAction?: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.sectionHeader}>
       <Label>{title}</Label>
@@ -209,6 +220,7 @@ export function SectionHeader({
 
 /** Centered ornament: hairline — copper diamond — hairline. Used sparingly. */
 export function OrnamentRule({ style }: { style?: StyleProp<ViewStyle> }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={[styles.ornament, style]}>
       <View style={styles.ornamentLine} />
@@ -220,6 +232,7 @@ export function OrnamentRule({ style }: { style?: StyleProp<ViewStyle> }) {
 
 /** The coaster monogram: a thin copper circle around an italic F. */
 export function Monogram({ size = 56 }: { size?: number }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View
       style={[
@@ -234,31 +247,36 @@ export function Monogram({ size = 56 }: { size?: number }) {
 
 export function Pill({
   children,
-  color = colors.accent,
+  color,
   filled = false,
 }: {
   children: ReactNode;
   color?: string;
   filled?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const tint = color ?? colors.accent;
   return (
     <View
       style={[
         styles.pill,
-        { borderColor: color },
-        filled && { backgroundColor: color },
+        { borderColor: tint },
+        filled && { backgroundColor: tint },
       ]}
     >
-      <Text style={[styles.pillText, { color: filled ? colors.bg : color }]}>{children}</Text>
+      <Text style={[styles.pillText, { color: filled ? colors.bg : tint }]}>{children}</Text>
     </View>
   );
 }
 
 export function Divider({ style }: { style?: StyleProp<ViewStyle> }) {
+  const styles = useThemedStyles(makeStyles);
   return <View style={[styles.divider, style]} />;
 }
 
 export function Loading({ label }: { label?: string }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.centered}>
       <Monogram />
@@ -276,6 +294,7 @@ export function EmptyState({
   message?: string;
   action?: ReactNode;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.centered}>
       <Monogram />
@@ -287,6 +306,7 @@ export function EmptyState({
 }
 
 export function ErrorState({ error, action }: { error: unknown; action?: ReactNode }) {
+  const styles = useThemedStyles(makeStyles);
   const message = error instanceof Error ? error.message : 'Something went wrong.';
   return (
     <View style={styles.centered}>
@@ -298,7 +318,8 @@ export function ErrorState({ error, action }: { error: unknown; action?: ReactNo
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) =>
+  StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -412,4 +433,4 @@ const styles = StyleSheet.create({
   stateAction: {
     marginTop: spacing.xl,
   },
-});
+  });

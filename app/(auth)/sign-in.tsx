@@ -5,11 +5,13 @@ import { Button } from '../../src/components/Button';
 import { TextField } from '../../src/components/TextField';
 import { Body, Flourish, Monogram, Muted, Screen, Title } from '../../src/components/ui';
 import { useAuth } from '../../src/providers/auth';
-import { colors, spacing, typography } from '../../src/theme';
+import { useThemedStyles } from '../../src/providers/theme';
+import { spacing, typography, type Theme } from '../../src/theme';
 
 type Step = 'email' | 'code';
 
 export default function SignIn() {
+  const styles = useThemedStyles(makeStyles);
   const { sendCode, verifyCode } = useAuth();
 
   const [step, setStep] = useState<Step>('email');
@@ -124,7 +126,7 @@ export default function SignIn() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) => StyleSheet.create({
   flex: { flex: 1 },
   content: {
     flexGrow: 1,

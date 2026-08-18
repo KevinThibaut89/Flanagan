@@ -12,7 +12,8 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
-import { colors, spacing } from '../theme';
+import { useTheme, useThemedStyles } from '../providers/theme';
+import { spacing, type Theme } from '../theme';
 
 export type SwipeSide = 'left' | 'right';
 
@@ -72,6 +73,8 @@ export function SwipeableRow({
   /** Fires as a horizontal drag begins/ends — lists use it to pause scrolling. */
   onDragStateChange?: (dragging: boolean) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const translateX = useRef(new Animated.Value(0)).current;
   const dragOrigin = useRef(0);
   const [width, setWidth] = useState(0);
@@ -258,7 +261,8 @@ export function SwipeableRow({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) =>
+  StyleSheet.create({
   wrap: {
     overflow: 'hidden',
     backgroundColor: colors.bg,
@@ -291,4 +295,4 @@ const styles = StyleSheet.create({
   content: {
     backgroundColor: colors.bg,
   },
-});
+  });

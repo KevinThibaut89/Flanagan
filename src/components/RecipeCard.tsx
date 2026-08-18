@@ -1,11 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { colorForKind } from './CategoryPill';
+import { useColorForKind } from './CategoryPill';
 import { Flourish, Heading, Muted } from './ui';
 import { useIngredientIndex } from '../data/ingredients';
 import { canMake, missingIngredients, type RecipeWithIngredients } from '../data/recipes';
-import { colors, radius, spacing, typography } from '../theme';
+import { useTheme, useThemedStyles } from '../providers/theme';
+import { radius, spacing, typography, type Theme } from '../theme';
 
 /**
  * The summary of a recipe used in the library list. It reads like a menu
@@ -21,6 +22,9 @@ export function RecipeCard({
   available: Set<string>;
   number?: number;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const colorForKind = useColorForKind();
   const { index } = useIngredientIndex();
 
   const makeable = canMake(recipe, available);
@@ -71,7 +75,8 @@ export function RecipeCard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) =>
+  StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
@@ -115,4 +120,4 @@ const styles = StyleSheet.create({
     ...typography.small,
     color: colors.textMuted,
   },
-});
+  });

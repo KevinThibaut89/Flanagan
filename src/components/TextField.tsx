@@ -1,7 +1,8 @@
 import { forwardRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
-import { colors, radius, spacing, typography } from '../theme';
+import { useTheme, useThemedStyles } from '../providers/theme';
+import { radius, spacing, typography, type Theme } from '../theme';
 
 interface TextFieldProps extends TextInputProps {
   label?: string;
@@ -14,6 +15,8 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   { label, hint, error, style, onFocus, onBlur, ...props },
   ref,
 ) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [focused, setFocused] = useState(false);
 
   return (
@@ -48,7 +51,8 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   );
 });
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) =>
+  StyleSheet.create({
   wrapper: {
     gap: spacing.xs,
   },
@@ -82,4 +86,4 @@ const styles = StyleSheet.create({
     ...typography.small,
     color: colors.danger,
   },
-});
+  });

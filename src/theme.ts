@@ -1,6 +1,11 @@
+import type { ViewStyle } from 'react-native';
+
 /**
- * A single dark theme. A bar app is used in dim rooms at night, so there is no
- * light variant to maintain — every colour here is tuned against `bg`.
+ * Two palettes, one voice. The dark theme is the native one — a bar app is
+ * used in dim rooms at night — and the light theme is its daylight cousin:
+ * parchment and ink instead of walnut and cream, with the same copper rail.
+ * Every token exists in both so components never branch on scheme; they read
+ * whatever `useTheme()` hands them.
  *
  * The design language is a cocktail menu, not a dashboard: content is the
  * interface and containers are rare. Fraunces carries the voice (titles,
@@ -10,37 +15,72 @@
  * does appear it reads as a brass rail, not a theme colour.
  */
 
-export const colors = {
+export type ColorScheme = 'dark' | 'light';
+
+export interface ThemeColors {
+  bg: string;
+  surface: string;
+  /** Modals and sheets only. */
+  surfaceRaised: string;
+  /** Hairlines are derived from the text colour so they sit in the same warm register. */
+  border: string;
+  borderSubtle: string;
+  text: string;
+  textMuted: string;
+  textFaint: string;
+  /** Copper. The one accent — primary actions, active tab, a rare keyline. */
+  accent: string;
+  /** Pressed/active copper and the bright stop of the brand gradient. */
+  accentSoft: string;
+  /** The quiet-luxury secondary: ornaments, numerals, monograms. */
+  cream: string;
+  success: string;
+  warning: string;
+  danger: string;
+  /** Translucent overlay for modals and scanner chrome. */
+  scrim: string;
+}
+
+export const darkColors: ThemeColors = {
   bg: '#120E0B',
   surface: '#1C1714',
-  /** Modals and sheets only. */
   surfaceRaised: '#262019',
-
-  /** Hairlines are derived from the text colour so they sit in the same warm register. */
   border: 'rgba(245, 237, 230, 0.10)',
   borderSubtle: 'rgba(245, 237, 230, 0.06)',
-
   text: '#F3EBE2',
   textMuted: '#B0A296',
   textFaint: '#6E6259',
-
-  /** Copper. The one accent — primary actions, active tab, a rare keyline. */
   accent: '#C87F3C',
-  /** Pressed/active copper and the bright stop of the brand gradient. */
   accentSoft: '#E2A15D',
-  /** The quiet-luxury secondary: ornaments, numerals, monograms. */
   cream: '#E9DCC9',
-
   success: '#6FA86B',
   warning: '#D4A03C',
   danger: '#C4574B',
-
-  /** Translucent overlay for modals and scanner chrome. */
   scrim: 'rgba(8, 6, 4, 0.78)',
-} as const;
+};
+
+export const lightColors: ThemeColors = {
+  bg: '#F5EFE6',
+  surface: '#FCF8F2',
+  surfaceRaised: '#FFFFFF',
+  border: 'rgba(30, 20, 12, 0.12)',
+  borderSubtle: 'rgba(30, 20, 12, 0.07)',
+  text: '#1F1610',
+  textMuted: '#6A5B50',
+  textFaint: '#9C8D80',
+  /** A touch deeper than the dark copper so it holds up on parchment. */
+  accent: '#B0672A',
+  accentSoft: '#C87F3C',
+  /** Bronze — the quiet secondary reads dark-on-light here. */
+  cream: '#8A6A46',
+  success: '#4F8A4B',
+  warning: '#A5761A',
+  danger: '#B4453A',
+  scrim: 'rgba(30, 20, 12, 0.45)',
+};
 
 // Category accents, used for bottle type pills and recipe base-spirit tags.
-export const categoryColors: Record<string, string> = {
+export const darkCategoryColors: Record<string, string> = {
   gin: '#8FB8C9',
   whisky: '#C08A4A',
   rum: '#B5763F',
@@ -59,6 +99,73 @@ export const categoryColors: Record<string, string> = {
   juice: '#C08658',
   garnish: '#7C9A63',
   other: '#8A7C74',
+};
+
+/** The same hues pulled down so they still read as ink on parchment. */
+export const lightCategoryColors: Record<string, string> = {
+  gin: '#4F8AA1',
+  whisky: '#9A6A2E',
+  rum: '#8F5A2A',
+  vodka: '#6F8189',
+  tequila: '#8E7E33',
+  mezcal: '#6F6335',
+  brandy: '#8C4F2A',
+  liqueur: '#8A5A82',
+  vermouth: '#8A4E57',
+  amaro: '#744339',
+  bitters: '#8A3B33',
+  wine: '#7A3A4B',
+  beer: '#8F6E1E',
+  mixer: '#4F6E77',
+  syrup: '#8A6540',
+  juice: '#9A6538',
+  garnish: '#5A7A42',
+  other: '#6F625A',
+};
+
+export interface Theme {
+  scheme: ColorScheme;
+  colors: ThemeColors;
+  categoryColors: Record<string, string>;
+  /**
+   * The one gradient in the app: copper sheen on primary CTAs. Everything else
+   * sits on flat surfaces — flat is what expensive looks like in the dark.
+   */
+  gradients: { brand: readonly [string, string] };
+  /** One soft elevation for floating elements; nothing else casts. */
+  shadows: { card: ViewStyle };
+}
+
+export const darkTheme: Theme = {
+  scheme: 'dark',
+  colors: darkColors,
+  categoryColors: darkCategoryColors,
+  gradients: { brand: ['#E2A15D', '#C87F3C'] },
+  shadows: {
+    card: {
+      shadowColor: '#000',
+      shadowOpacity: 0.28,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 3,
+    },
+  },
+};
+
+export const lightTheme: Theme = {
+  scheme: 'light',
+  colors: lightColors,
+  categoryColors: lightCategoryColors,
+  gradients: { brand: ['#C87F3C', '#B0672A'] },
+  shadows: {
+    card: {
+      shadowColor: '#1F1610',
+      shadowOpacity: 0.10,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 3,
+    },
+  },
 };
 
 export const spacing = {
@@ -80,25 +187,6 @@ export const radius = {
   lg: 16,
   xl: 22,
   pill: 999,
-} as const;
-
-/**
- * The one gradient in the app: copper sheen on primary CTAs. Everything else
- * sits on flat surfaces — flat is what expensive looks like in the dark.
- */
-export const gradients = {
-  brand: ['#E2A15D', '#C87F3C'] as const,
-} as const;
-
-/** One soft elevation for floating elements; nothing else casts. */
-export const shadows = {
-  card: {
-    shadowColor: '#000',
-    shadowOpacity: 0.28,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
-  },
 } as const;
 
 /**

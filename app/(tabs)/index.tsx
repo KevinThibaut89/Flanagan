@@ -6,7 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
 import { Chip } from '../../src/components/Chip';
-import { colorForKind } from '../../src/components/CategoryPill';
+import { useColorForKind } from '../../src/components/CategoryPill';
 import {
   Body,
   Display,
@@ -29,7 +29,8 @@ import {
   useRecipes,
   type RecipeWithIngredients,
 } from '../../src/data/recipes';
-import { colors, gradients, spacing, typography } from '../../src/theme';
+import { useTheme, useThemedStyles } from '../../src/providers/theme';
+import { spacing, typography, type Theme } from '../../src/theme';
 import type { Bottle } from '../../src/types/database';
 
 const MOODS: Array<{ label: string; prompt: string }> = [
@@ -47,6 +48,9 @@ function greetingForHour(hour: number): string {
 }
 
 export default function HomeScreen() {
+  const { colors, gradients } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const colorForKind = useColorForKind();
   const router = useRouter();
   const { data: bottles, isLoading: bottlesLoading } = useBottles();
   const { data: recipes, isLoading: recipesLoading } = useRecipes();
@@ -261,6 +265,7 @@ export default function HomeScreen() {
 }
 
 function LedgerColumn({ value, label, href }: { value: number; label: string; href: Href }) {
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   return (
     <PressableScale
@@ -295,6 +300,8 @@ function PickCard({
   ingredientName: (id: string | null, freeText: string | null) => string | null;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const lineNames = recipe.recipe_ingredients
     .filter((line) => !line.is_garnish)
     .map((line) => ingredientName(line.ingredient_id, line.free_text))
@@ -338,6 +345,7 @@ function EmptyRow({
   first: boolean;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <PressableScale
       onPress={onPress}
@@ -362,6 +370,8 @@ function ShortcutRow({
   onPress: () => void;
   first?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <PressableScale
       onPress={onPress}
@@ -375,7 +385,7 @@ function ShortcutRow({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) => StyleSheet.create({
   content: {
     paddingHorizontal: spacing.gutter,
     paddingTop: spacing.md,

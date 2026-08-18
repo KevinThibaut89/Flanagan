@@ -10,7 +10,7 @@
     ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kevinthibaut.flanagan"
@@ -25,10 +25,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.CAMERA"
       ]
     },
     "plugins": [
@@ -37,7 +34,16 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Flanagan uses the camera to scan bottle barcodes so it can add them to your bar."
+          "cameraPermission": "Flanagan uses the camera to scan bottle barcodes and photograph your shelf so it can add bottles to your bar.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Flanagan uses your photos so you can add the bottles in a shelf picture to your bar.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ]
     ],

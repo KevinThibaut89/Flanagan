@@ -2,7 +2,8 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from './Button';
 import { Flourish, Heading } from './ui';
-import { colors, radius, shadows, spacing } from '../theme';
+import { useThemedStyles } from '../providers/theme';
+import { radius, spacing, type Theme } from '../theme';
 
 /**
  * A themed replacement for `Alert.alert` on destructive flows — the native
@@ -25,6 +26,7 @@ export function ConfirmSheet({
   onCancel: () => void;
   busy?: boolean;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable style={styles.scrim} onPress={busy ? undefined : onCancel}>
@@ -42,7 +44,8 @@ export function ConfirmSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, shadows }: Theme) =>
+  StyleSheet.create({
   scrim: {
     flex: 1,
     backgroundColor: colors.scrim,
@@ -73,4 +76,4 @@ const styles = StyleSheet.create({
   action: {
     flex: 1,
   },
-});
+  });

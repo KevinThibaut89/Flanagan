@@ -8,7 +8,8 @@ import { TextField } from './TextField';
 import { Body, Label, Muted } from './ui';
 import { ML_PER_OZ } from '../lib/units';
 import { useUnits } from '../providers/preferences';
-import { colors, spacing } from '../theme';
+import { useThemedStyles } from '../providers/theme';
+import { spacing, type Theme } from '../theme';
 import type { BottleKind, BottleStatus } from '../types/database';
 
 export interface BottleFormValues {
@@ -79,6 +80,7 @@ export function BottleForm({
   /** The current ingredient was guessed from the name, not chosen by the user. */
   ingredientGuessed?: boolean;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const units = useUnits();
   const [touched, setTouched] = useState(false);
 
@@ -230,7 +232,8 @@ export function parseOptionalNumber(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors }: Theme) =>
+  StyleSheet.create({
   flex: { flex: 1 },
   content: {
     padding: spacing.gutter,
@@ -262,4 +265,4 @@ const styles = StyleSheet.create({
   error: {
     color: colors.danger,
   },
-});
+  });

@@ -13,11 +13,12 @@ import { ConfirmSheet } from '../../src/components/ConfirmSheet';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { ErrorState, Loading, PressableScale, Screen } from '../../src/components/ui';
 import { useBottle, useDeleteBottle, useUpdateBottle } from '../../src/data/bottles';
-import { colors } from '../../src/theme';
+import { useTheme } from '../../src/providers/theme';
 
 export default function BottleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors } = useTheme();
 
   const { data: bottle, isLoading, error, refetch } = useBottle(id);
   const updateBottle = useUpdateBottle();
