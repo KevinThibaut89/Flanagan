@@ -5,7 +5,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
 import { Chip } from '../../src/components/Chip';
+import { ConfirmSheet } from '../../src/components/ConfirmSheet';
 import { RecipeCard } from '../../src/components/RecipeCard';
+import { SwipeableRow } from '../../src/components/SwipeableRow';
 import {
   EmptyState,
   ErrorState,
@@ -16,8 +18,14 @@ import {
   Title,
 } from '../../src/components/ui';
 import { useAvailableIngredientIds } from '../../src/data/bottles';
-import { canMake, recipeNumbers, useRecipes } from '../../src/data/recipes';
-import { colors, spacing } from '../../src/theme';
+import {
+  canMake,
+  recipeNumbers,
+  useDeleteRecipe,
+  useRecipes,
+  type RecipeWithIngredients,
+} from '../../src/data/recipes';
+import { colors, radius, spacing } from '../../src/theme';
 
 type Filter = 'all' | 'makeable' | 'mine' | 'suggested' | 'favorites';
 
@@ -33,8 +41,25 @@ export default function RecipesScreen() {
   const router = useRouter();
   const { data: recipes, isLoading, error, refetch, isRefetching } = useRecipes();
   const available = useAvailableIngredientIds();
+  const deleteRecipe = useDeleteRecipe();
 
   const [filter, setFilter] = useState<Filter>('all');
+
+  // Swipe-to-delete: one card peeked open at a time, scrolling paused mid-drag,
+  // and the same confirmation sheet as the recipe screen before anything goes.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<RecipeWithIngredients | null>(null);
+
+  const cancelDelete = () => {
+    setPendingDelete(null);
+    setOpenId(null);
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    deleteRecipe.mutate(pendingDelete.id, { onSettled: cancelDelete });
+  };
 
   // Home deep-links into a pre-filtered view, e.g. /recipes?filter=makeable.
   const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
@@ -121,6 +146,8 @@ export default function RecipesScreen() {
         keyExtractor={(item) => item.id}
         refreshing={isRefetching}
         onRefresh={refetch}
+        scrollEnabled={!dragging}
+        onScrollBeginDrag={() => setOpenId(null)}
         contentContainerStyle={visible.length === 0 ? styles.emptyWrap : styles.listContent}
         ListEmptyComponent={
           recipes && recipes.length === 0 ? (
@@ -141,14 +168,38 @@ export default function RecipesScreen() {
           )
         }
         renderItem={({ item }) => (
-          <PressableScale
-            onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: item.id } })}
-            accessibilityRole="button"
-            accessibilityLabel={item.title}
+          <SwipeableRow
+            borderRadius={radius.lg}
+            open={openId === item.id ? 'right' : null}
+            onOpen={() => setOpenId(item.id)}
+            onClose={() => setOpenId((cur) => (cur === item.id ? null : cur))}
+            onDragStateChange={setDragging}
+            right={{
+              label: 'Delete',
+              icon: 'trash-can-outline',
+              color: colors.danger,
+              onPress: () => setPendingDelete(item),
+            }}
           >
-            <RecipeCard recipe={item} available={available} number={numbers.get(item.id)} />
-          </PressableScale>
+            <PressableScale
+              onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: item.id } })}
+              accessibilityRole="button"
+              accessibilityLabel={item.title}
+            >
+              <RecipeCard recipe={item} available={available} number={numbers.get(item.id)} />
+            </PressableScale>
+          </SwipeableRow>
         )}
+      />
+
+      <ConfirmSheet
+        visible={pendingDelete !== null}
+        title="Delete this recipe?"
+        message="It leaves the notebook for good — this cannot be undone."
+        confirmLabel="Delete"
+        busy={deleteRecipe.isPending}
+        onCancel={cancelDelete}
+        onConfirm={confirmDelete}
       />
     </Screen>
   );

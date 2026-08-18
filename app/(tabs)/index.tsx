@@ -32,9 +32,6 @@ import {
 import { colors, gradients, spacing, typography } from '../../src/theme';
 import type { Bottle } from '../../src/types/database';
 
-/** Below this the bottle counts as running low — matches the Bar screen. */
-const LOW_FILL_PCT = 25;
-
 const MOODS: Array<{ label: string; prompt: string }> = [
   { label: 'Bitter & stirred', prompt: 'Something bitter and stirred' },
   { label: 'Fresh & citrusy', prompt: 'Something fresh and citrusy' },
@@ -60,9 +57,10 @@ export default function HomeScreen() {
     () => (bottles ?? []).filter((b) => b.status === 'in_stock'),
     [bottles],
   );
-  const lowBottles = useMemo(
-    () => inStock.filter((b) => b.kind === 'bottle' && b.fill_pct <= LOW_FILL_PCT),
-    [inStock],
+  // Finished bottles are kept rather than deleted, so this doubles as the shopping list.
+  const emptyBottles = useMemo(
+    () => (bottles ?? []).filter((b) => b.status !== 'in_stock'),
+    [bottles],
   );
   const makeable = useMemo(
     () => (recipes ?? []).filter((recipe) => canMake(recipe, available)),
@@ -160,9 +158,9 @@ export default function HomeScreen() {
                 />
                 <View style={styles.ledgerRule} />
                 <LedgerColumn
-                  value={lowBottles.length}
-                  label="Running low"
-                  href={{ pathname: '/bar', params: { filter: 'low' } }}
+                  value={emptyBottles.length}
+                  label="Empty"
+                  href={{ pathname: '/bar', params: { filter: 'out' } }}
                 />
               </View>
 
@@ -210,16 +208,16 @@ export default function HomeScreen() {
                 )}
               </View>
 
-              {lowBottles.length > 0 ? (
+              {emptyBottles.length > 0 ? (
                 <View style={styles.section}>
                   <SectionHeader
-                    title="Running low"
+                    title="Empty"
                     actionLabel="Open bar"
-                    onAction={() => router.push({ pathname: '/bar', params: { filter: 'low' } })}
+                    onAction={() => router.push({ pathname: '/bar', params: { filter: 'out' } })}
                   />
                   <View>
-                    {lowBottles.slice(0, 3).map((bottle, i) => (
-                      <LowRow
+                    {emptyBottles.slice(0, 3).map((bottle, i) => (
+                      <EmptyRow
                         key={bottle.id}
                         bottle={bottle}
                         first={i === 0}
@@ -331,7 +329,7 @@ function PickCard({
   );
 }
 
-function LowRow({
+function EmptyRow({
   bottle,
   first,
   onPress,
@@ -344,18 +342,13 @@ function LowRow({
     <PressableScale
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${bottle.name}, ${bottle.fill_pct} percent left`}
-      style={[styles.lowRow, !first && styles.rowDivider]}
+      accessibilityLabel={`${bottle.name}, empty`}
+      style={[styles.emptyRow, !first && styles.rowDivider]}
     >
-      <View style={styles.lowBody}>
-        <Body style={styles.lowName} numberOfLines={1}>
-          {bottle.name}
-        </Body>
-        <View style={styles.lowTrack}>
-          <View style={[styles.lowLevel, { width: `${Math.max(bottle.fill_pct, 2)}%` }]} />
-        </View>
-      </View>
-      <Text style={styles.lowPct}>{bottle.fill_pct}%</Text>
+      <Body style={styles.emptyName} numberOfLines={1}>
+        {bottle.name}
+      </Body>
+      <Text style={styles.emptyLabel}>Out</Text>
     </PressableScale>
   );
 }
@@ -530,35 +523,20 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.borderSubtle,
   },
-  lowRow: {
+  emptyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
     paddingVertical: spacing.md,
   },
-  lowBody: {
+  emptyName: {
     flex: 1,
-    gap: spacing.sm,
-  },
-  lowName: {
     fontWeight: '600',
     fontSize: 14,
   },
-  lowTrack: {
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.surfaceRaised,
-    overflow: 'hidden',
-  },
-  lowLevel: {
-    height: '100%',
-    backgroundColor: colors.warning,
-  },
-  lowPct: {
+  emptyLabel: {
     ...typography.small,
-    fontWeight: '600',
-    color: colors.warning,
-    fontVariant: ['tabular-nums'],
+    color: colors.textFaint,
   },
 
   shortcutRow: {

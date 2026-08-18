@@ -53,8 +53,11 @@ export function SwipeableRow({
   onOpen,
   onClose,
   onDragStateChange,
+  borderRadius = 0,
 }: {
   children: ReactNode;
+  /** Match the child's corner radius when the row is a card rather than a full-bleed line. */
+  borderRadius?: number;
   /** Revealed by dragging the row to the right. */
   left?: SwipeAction;
   /** Revealed by dragging the row to the left. */
@@ -207,7 +210,7 @@ export function SwipeableRow({
   const active = side === 'left' ? left : side === 'right' ? right : undefined;
 
   return (
-    <View style={styles.wrap} onLayout={onLayout}>
+    <View style={[styles.wrap, { borderRadius }]} onLayout={onLayout}>
       {active && side ? (
         <View
           pointerEvents={open ? 'auto' : 'none'}

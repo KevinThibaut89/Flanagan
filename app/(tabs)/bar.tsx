@@ -25,13 +25,12 @@ import { useUnits } from '../../src/providers/preferences';
 import { colors, radius, spacing, typography } from '../../src/theme';
 import type { Bottle, IngredientKind } from '../../src/types/database';
 
-type Filter = 'all' | 'bottles' | 'staples' | 'low' | 'out';
+type Filter = 'all' | 'bottles' | 'staples' | 'out';
 
 const FILTERS: Array<{ key: Filter; label: string }> = [
   { key: 'all', label: 'All' },
   { key: 'bottles', label: 'Bottles' },
   { key: 'staples', label: 'Staples' },
-  { key: 'low', label: 'Running low' },
   { key: 'out', label: 'Out' },
 ];
 
@@ -64,6 +63,14 @@ export default function BarScreen() {
     );
   };
 
+  // A fresh bottle: back on the shelf, full.
+  const restock = (bottle: Bottle) => {
+    updateBottle.mutate(
+      { id: bottle.id, status: 'in_stock', fill_pct: 100 },
+      { onSettled: () => setOpenRow(null) },
+    );
+  };
+
   const cancelDelete = () => {
     setPendingDelete(null);
     setOpenRow(null);
@@ -74,7 +81,7 @@ export default function BarScreen() {
     deleteBottle.mutate(pendingDelete.id, { onSettled: cancelDelete });
   };
 
-  // Home deep-links into a pre-filtered view, e.g. /bar?filter=low.
+  // Home deep-links into a pre-filtered view, e.g. /bar?filter=out.
   const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
   useEffect(() => {
     if (filterParam && FILTERS.some((f) => f.key === filterParam)) {
@@ -90,11 +97,7 @@ export default function BarScreen() {
       if (filter === 'bottles' && bottle.kind !== 'bottle') return false;
       if (filter === 'staples' && bottle.kind !== 'staple') return false;
       if (filter === 'out' && bottle.status === 'in_stock') return false;
-      if (filter === 'low') {
-        if (bottle.status !== 'in_stock') return false;
-        if (bottle.fill_pct > LOW_FILL_PCT) return false;
-      }
-      if (filter !== 'out' && filter !== 'low' && bottle.status === 'finished') return false;
+      if (filter !== 'out' && bottle.status === 'finished') return false;
 
       if (!needle) return true;
       return (
@@ -106,6 +109,10 @@ export default function BarScreen() {
 
   const inStockCount = useMemo(
     () => (bottles ?? []).filter((b) => b.status === 'in_stock').length,
+    [bottles],
+  );
+  const outCount = useMemo(
+    () => (bottles ?? []).filter((b) => b.status !== 'in_stock').length,
     [bottles],
   );
 
@@ -162,6 +169,7 @@ export default function BarScreen() {
           renderItem={({ item }) => (
             <Chip
               label={item.label}
+              count={item.key === 'out' ? outCount : undefined}
               active={filter === item.key}
               onPress={() => setFilter(item.key)}
             />
@@ -195,7 +203,7 @@ export default function BarScreen() {
             onOpen={(side) => setOpenRow({ id: item.id, side })}
             onClose={() => setOpenRow((cur) => (cur?.id === item.id ? null : cur))}
             onDragStateChange={setDragging}
-            // Swipe right → mark it empty (only meaningful while it is in stock).
+            // Swipe right → mark it empty; on an empty one, put it back on the shelf.
             left={
               item.status === 'in_stock'
                 ? {
@@ -205,7 +213,13 @@ export default function BarScreen() {
                     dismisses: true,
                     onPress: () => markEmpty(item),
                   }
-                : undefined
+                : {
+                    label: 'Restock',
+                    icon: 'bottle-wine',
+                    color: colors.success,
+                    dismisses: true,
+                    onPress: () => restock(item),
+                  }
             }
             // Swipe left → delete, behind the same confirmation as the detail screen.
             right={{

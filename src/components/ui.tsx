@@ -103,9 +103,13 @@ export function Flourish({ children, style, ...props }: TypographyProps) {
   );
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 /**
  * The one press affordance in the app: a quiet scale-down, no opacity flash.
- * Layout styles go on the inner Animated.View via `style`.
+ * `style` lands on the pressable itself, so layout props such as `flex` and
+ * `alignSelf` take part in the parent's layout (a wrapped inner view would
+ * swallow them and leave the pressable sized to its content).
  */
 export function PressableScale({
   children,
@@ -129,14 +133,15 @@ export function PressableScale({
     }).start();
 
   return (
-    <Pressable
+    <AnimatedPressable
       onPressIn={() => settle(scaleTo)}
       onPressOut={() => settle(1)}
       onPress={onPress}
+      style={[style, { transform: [{ scale }] }]}
       {...props}
     >
-      <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
-    </Pressable>
+      {children}
+    </AnimatedPressable>
   );
 }
 

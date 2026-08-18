@@ -1,4 +1,4 @@
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { PressableScale } from './ui';
@@ -11,13 +11,18 @@ import { colors, radius, spacing } from '../theme';
  */
 export function Chip({
   label,
+  count,
   active = false,
   onPress,
 }: {
   label: string;
+  /** Optional tally shown as a small badge after the label. Hidden when 0 or undefined. */
+  count?: number;
   active?: boolean;
   onPress: () => void;
 }) {
+  const showCount = typeof count === 'number' && count > 0;
+
   return (
     <PressableScale
       onPress={() => {
@@ -26,15 +31,24 @@ export function Chip({
       }}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
+      accessibilityLabel={showCount ? `${label}, ${count}` : label}
       style={[styles.chip, active && styles.chipActive]}
     >
       <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
+      {showCount ? (
+        <View style={[styles.badge, active && styles.badgeActive]}>
+          <Text style={[styles.badgeText, active && styles.badgeTextActive]}>{count}</Text>
+        </View>
+      ) : null}
     </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
@@ -51,5 +65,26 @@ const styles = StyleSheet.create({
   },
   labelActive: {
     color: colors.accentSoft,
+  },
+  badge: {
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceRaised,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeActive: {
+    backgroundColor: colors.accent,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    fontVariant: ['tabular-nums'],
+  },
+  badgeTextActive: {
+    color: colors.bg,
   },
 });
