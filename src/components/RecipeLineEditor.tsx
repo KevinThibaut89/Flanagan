@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Haptics from 'expo-haptics';
 
 import { IngredientPicker } from './IngredientPicker';

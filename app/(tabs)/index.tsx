@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Button } from '../../src/components/Button';
 import { useColorForKind } from '../../src/components/CategoryPill';

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Button } from '../../src/components/Button';
 import { Chip } from '../../src/components/Chip';

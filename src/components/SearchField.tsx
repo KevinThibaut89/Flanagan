@@ -8,7 +8,7 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { useTheme, useThemedStyles } from '../providers/theme';
 import { radius, spacing, type Theme } from '../theme';

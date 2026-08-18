@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Button } from '../src/components/Button';
 import { Chip } from '../src/components/Chip';

@@ -5,12 +5,10 @@ import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
-import {
-  Fraunces_400Regular,
-  Fraunces_400Regular_Italic,
-  Fraunces_500Medium,
-  Fraunces_600SemiBold,
-} from '@expo-google-fonts/fraunces';
+import { Fraunces_400Regular } from '@expo-google-fonts/fraunces/400Regular';
+import { Fraunces_400Regular_Italic } from '@expo-google-fonts/fraunces/400Regular_Italic';
+import { Fraunces_500Medium } from '@expo-google-fonts/fraunces/500Medium';
+import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces/600SemiBold';
 
 import { Loading } from '../src/components/ui';
 import { AuthProvider, useAuth } from '../src/providers/auth';

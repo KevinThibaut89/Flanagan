@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { labelForKind, useColorForKind } from './CategoryPill';
 import { SearchField } from './SearchField';

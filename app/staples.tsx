@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { SectionList, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Haptics from 'expo-haptics';
 
 import { labelForKind } from '../src/components/CategoryPill';

@@ -3,7 +3,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Button } from '../../src/components/Button';
 import { labelForKind, useColorForKind } from '../../src/components/CategoryPill';

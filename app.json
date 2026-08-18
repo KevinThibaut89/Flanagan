@@ -30,6 +30,8 @@
     },
     "plugins": [
       "expo-router",
+      "expo-font",
+      "expo-asset",
       "expo-secure-store",
       [
         "expo-camera",

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { useColorForKind } from './CategoryPill';
 import { Flourish, Heading, Muted } from './ui';

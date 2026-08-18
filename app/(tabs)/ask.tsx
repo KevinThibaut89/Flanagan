@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Button } from '../../src/components/Button';
 import { Chip } from '../../src/components/Chip';

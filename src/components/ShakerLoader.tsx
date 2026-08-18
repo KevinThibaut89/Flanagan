@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 /**
  * A cocktail glass that tilts side to side, as if being swirled — the app's

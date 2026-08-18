@@ -9,7 +9,7 @@ import {
   View,
   type LayoutChangeEvent,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Haptics from 'expo-haptics';
 
 import { useTheme, useThemedStyles } from '../providers/theme';
