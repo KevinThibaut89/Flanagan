@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 
 import { supabase } from '../lib/supabase';
+import { asQuotaError, useInvalidatePlan } from './plan';
 import type { RecipeDraft } from './recipes';
 import type { RecipeWithIngredients } from './recipes';
 
@@ -17,6 +18,7 @@ export interface SuggestionResponse {
 }
 
 export function useSuggestCocktails() {
+  const invalidatePlan = useInvalidatePlan();
   return useMutation({
     mutationFn: async (query: string): Promise<SuggestionResponse> => {
       const { data, error } = await supabase.functions.invoke<SuggestionResponse>(
@@ -24,10 +26,14 @@ export function useSuggestCocktails() {
         { body: { query } },
       );
 
-      if (error) throw error;
+      // A 402 is not a failure of the service; it is the month's allowance,
+      // and the screen offers Plus rather than an error line.
+      if (error) throw await asQuotaError(error);
       if (!data) throw new Error('The suggestion service returned nothing.');
       return data;
     },
+    // Every answer costs an ask; the "N left" line should move straight away.
+    onSettled: () => void invalidatePlan(),
   });
 }
 

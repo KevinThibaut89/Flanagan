@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -6,33 +6,31 @@ import * as Haptics from 'expo-haptics';
 
 import { BottomSheet } from './BottomSheet';
 import { ConfirmSheet } from './ConfirmSheet';
+import { PlusNotice } from './PlusNotice';
 import { ShakerLoader } from './ShakerLoader';
 import { SheetOption } from './SheetOption';
 import { Body, Flourish, Muted, PressableScale } from './ui';
 import type { ShelfMimeType } from '../data/identify';
+import { isQuotaExceeded, type QuotaExceededError } from '../data/plan';
 import { useReadRecipe, type ReadRecipe } from '../data/readRecipe';
 import { pickRecipePhoto, type PhotoSource } from '../data/recipePhotos';
+import { shrinkForModel } from '../lib/images';
 import { useTheme, useThemedStyles } from '../providers/theme';
 import { radius, spacing, typography, type Theme } from '../theme';
 
 /**
- * JPEG quality for a photographed page. Print is high-contrast and survives
- * compression well; what the model needs is the full sensor resolution, which
- * `quality` leaves alone. Slightly above the shelf photo's setting because
- * small type is less forgiving than a bottle label.
+ * JPEG quality asked of the picker. The page is resized and re-encoded for the
+ * model afterwards (`shrinkForModel`), so this only has to keep the print
+ * intact until then; print is high-contrast and survives compression well.
  */
-const PAGE_PHOTO_QUALITY = 0.6;
-
-const MIME_TYPES: readonly string[] = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
-
-function asMimeType(value: string): ShelfMimeType {
-  return MIME_TYPES.includes(value) ? (value as ShelfMimeType) : 'image/jpeg';
-}
+const PAGE_PHOTO_QUALITY = 0.8;
 
 type Status =
   | { kind: 'idle' }
   | { kind: 'reading'; uri: string }
   | { kind: 'error'; uri: string | null; message: string }
+  /** The month's recipe photos are used up; the notice offers Plus. */
+  | { kind: 'quota'; uri: string | null; error: QuotaExceededError }
   /** The page held several recipes; the user picks one. */
   | { kind: 'choosing'; uri: string; recipes: ReadRecipe[] }
   | { kind: 'done'; uri: string; recipe: ReadRecipe };
@@ -77,19 +75,37 @@ export function ScanRecipe({
     onRead(recipe);
   }
 
+  // The last photo sent, kept so a scan refused for want of an allowance can
+  // be resent after Plus is bought without picking it again.
+  const lastPhoto = useRef<{ uri: string; base64: string; mimeType: ShelfMimeType } | null>(null);
+
   async function choose(source: PhotoSource) {
     setSourceOpen(false);
-    let uri: string | null = null;
+    let photo: { uri: string; base64: string; mimeType: ShelfMimeType };
     try {
-      const picked = await pickRecipePhoto(source, { base64: true, quality: PAGE_PHOTO_QUALITY });
-      if (!picked?.base64) return;
-      uri = picked.uri;
+      const picked = await pickRecipePhoto(source, { quality: PAGE_PHOTO_QUALITY });
+      if (!picked) return;
+      // Resized and re-encoded for the model: same tokens, a tenth of the upload.
+      const shrunk = await shrinkForModel(picked.uri, picked.size);
+      photo = { uri: shrunk.uri, base64: shrunk.base64, mimeType: shrunk.mimeType };
+    } catch (cause) {
+      setStatus({
+        kind: 'error',
+        uri: null,
+        message: cause instanceof Error ? cause.message : 'Could not open that photo.',
+      });
+      return;
+    }
+    lastPhoto.current = photo;
+    await submit(photo);
+  }
+
+  async function submit(photo: { uri: string; base64: string; mimeType: ShelfMimeType }) {
+    const uri = photo.uri;
+    try {
       setStatus({ kind: 'reading', uri });
 
-      const result = await read.mutateAsync({
-        base64: picked.base64,
-        mimeType: asMimeType(picked.mimeType),
-      });
+      const result = await read.mutateAsync({ base64: photo.base64, mimeType: photo.mimeType });
 
       if (result.recipes.length === 0) {
         setStatus({
@@ -105,6 +121,10 @@ export function ScanRecipe({
         setStatus({ kind: 'choosing', uri, recipes: result.recipes });
       }
     } catch (cause) {
+      if (isQuotaExceeded(cause)) {
+        setStatus({ kind: 'quota', uri, error: cause });
+        return;
+      }
       setStatus({
         kind: 'error',
         uri,
@@ -173,6 +193,15 @@ export function ScanRecipe({
       )}
 
       {status.kind === 'error' ? <Text style={styles.error}>{status.message}</Text> : null}
+
+      {status.kind === 'quota' ? (
+        <PlusNotice
+          error={status.error}
+          onUnlocked={() => {
+            if (lastPhoto.current) void submit(lastPhoto.current);
+          }}
+        />
+      ) : null}
 
       <BottomSheet visible={sourceOpen} onClose={() => setSourceOpen(false)} title="Scan a recipe">
         <View style={styles.options}>

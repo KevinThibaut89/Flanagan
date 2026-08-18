@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Button } from '../../src/components/Button';
+import { PlusNotice } from '../../src/components/PlusNotice';
 import { labelForKind, useColorForKind } from '../../src/components/CategoryPill';
 import { IngredientSearchModal } from '../../src/components/IngredientPicker';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
@@ -20,6 +21,7 @@ import {
 } from '../../src/components/ui';
 import { useAddBottles, useBottles } from '../../src/data/bottles';
 import { useIdentifyBottles, type IdentifiedBottle } from '../../src/data/identify';
+import { isQuotaExceeded } from '../../src/data/plan';
 import { useIngredientIndex } from '../../src/data/ingredients';
 import { takePendingCapture, type ShelfCapture } from '../../src/data/shelfCapture';
 import { formatBottleSize } from '../../src/lib/units';
@@ -193,6 +195,14 @@ export default function ReviewBottlesScreen() {
           <Image source={{ uri: capture.uri }} style={styles.heroThumb} contentFit="cover" />
           <Loading label="Reading the labels…" />
         </View>
+      ) : isQuotaExceeded(identify.error) ? (
+        <View style={styles.stateWrap}>
+          <Image source={{ uri: capture.uri }} style={styles.heroThumb} contentFit="cover" />
+          <View style={styles.quotaWrap}>
+            <PlusNotice error={identify.error} onUnlocked={runIdentify} />
+            <Button label="Back to the bar" variant="ghost" onPress={retake} />
+          </View>
+        </View>
       ) : identify.isError ? (
         <ErrorState
           error={identify.error}
@@ -335,6 +345,10 @@ const makeStyles = ({ colors }: Theme) =>
   StyleSheet.create({
     stateWrap: {
       flex: 1,
+    },
+    quotaWrap: {
+      padding: spacing.gutter,
+      gap: spacing.md,
     },
     heroThumb: {
       marginHorizontal: spacing.gutter,
