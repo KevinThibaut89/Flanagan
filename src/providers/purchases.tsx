@@ -66,7 +66,11 @@ interface PurchasesValue {
   presentPaywall: () => Promise<PaywallOutcome>;
   /** The paywall, only if the person is not already Plus. */
   presentPaywallIfNeeded: () => Promise<PaywallOutcome>;
-  /** RevenueCat's Customer Center: manage, cancel, restore, ask for a refund. */
+  /**
+   * RevenueCat's Customer Center: manage, cancel, restore, ask for a refund.
+   * Presents from the root view controller, so it does nothing when called
+   * from a screen that is itself a modal — use the /manage route from those.
+   */
   presentCustomerCenter: () => Promise<void>;
   restore: () => Promise<boolean>;
   refresh: () => Promise<void>;

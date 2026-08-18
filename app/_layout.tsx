@@ -69,6 +69,7 @@ function AuthGate() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="scan" options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="manage" options={{ presentation: 'modal' }} />
           <Stack.Screen name="staples" options={{ presentation: 'modal' }} />
         </Stack>
       )}

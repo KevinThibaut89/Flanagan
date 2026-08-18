@@ -97,15 +97,9 @@ function OptionList<T extends string>({
 function PlanSection() {
   const styles = useThemedStyles(makeStyles);
   const { data: plan } = usePlan();
-  const {
-    available,
-    unavailableReason,
-    isPlus,
-    loading,
-    presentPaywall,
-    presentCustomerCenter,
-    restore,
-  } = usePurchases();
+  const router = useRouter();
+  const { available, unavailableReason, isPlus, loading, presentPaywall, restore } =
+    usePurchases();
   const [restoreNote, setRestoreNote] = useState<string | null>(null);
 
   // The server's tier is what the allowances follow; RevenueCat's is what a
@@ -139,10 +133,12 @@ function PlanSection() {
           {loading ? 'Checking the store…' : (unavailableReason ?? 'Purchases are not available in this build.')}
         </Muted>
       ) : plus ? (
+        // Our own route around the Customer Center: the SDK's presenter cannot
+        // show it over this modal (see app/manage.tsx).
         <Button
           label="Manage subscription"
           variant="secondary"
-          onPress={() => void presentCustomerCenter()}
+          onPress={() => router.push('/manage')}
         />
       ) : (
         <>
