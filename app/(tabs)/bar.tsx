@@ -6,6 +6,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Button } from '../../src/components/Button';
 import { Chip } from '../../src/components/Chip';
 import { colorForKind } from '../../src/components/CategoryPill';
+import { ConfirmSheet } from '../../src/components/ConfirmSheet';
+import { SwipeableRow, type SwipeSide } from '../../src/components/SwipeableRow';
 import {
   Body,
   EmptyState,
@@ -16,7 +18,7 @@ import {
   Screen,
   Title,
 } from '../../src/components/ui';
-import { useBottles } from '../../src/data/bottles';
+import { useBottles, useDeleteBottle, useUpdateBottle } from '../../src/data/bottles';
 import { useIngredientIndex } from '../../src/data/ingredients';
 import { formatBottleSize } from '../../src/lib/units';
 import { useUnits } from '../../src/providers/preferences';
@@ -41,9 +43,36 @@ export default function BarScreen() {
   const units = useUnits();
   const { data: bottles, isLoading, error, refetch, isRefetching } = useBottles();
   const { index } = useIngredientIndex();
+  const updateBottle = useUpdateBottle();
+  const deleteBottle = useDeleteBottle();
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+
+  // Swipe state: at most one row is peeked open, and the list stops scrolling
+  // while a finger is dragging a row sideways.
+  const [openRow, setOpenRow] = useState<{ id: string; side: SwipeSide } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Bottle | null>(null);
+
+  const markEmpty = (bottle: Bottle) => {
+    updateBottle.mutate(
+      { id: bottle.id, status: 'finished', fill_pct: 0 },
+      // Under most filters the row leaves the list on success; if it stays
+      // (or the update fails) slide it back into place.
+      { onSettled: () => setOpenRow(null) },
+    );
+  };
+
+  const cancelDelete = () => {
+    setPendingDelete(null);
+    setOpenRow(null);
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    deleteBottle.mutate(pendingDelete.id, { onSettled: cancelDelete });
+  };
 
   // Home deep-links into a pre-filtered view, e.g. /bar?filter=low.
   const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
@@ -145,6 +174,8 @@ export default function BarScreen() {
         keyExtractor={(item) => item.id}
         refreshing={isRefetching}
         onRefresh={refetch}
+        scrollEnabled={!dragging}
+        onScrollBeginDrag={() => setOpenRow(null)}
         contentContainerStyle={visible.length === 0 ? styles.emptyWrap : styles.listContent}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
@@ -159,13 +190,49 @@ export default function BarScreen() {
           )
         }
         renderItem={({ item }) => (
-          <BottleRow
-            bottle={item}
-            kind={item.ingredient_id ? index?.byId.get(item.ingredient_id)?.kind ?? null : null}
-            units={units}
-            onPress={() => router.push({ pathname: '/bottle/[id]', params: { id: item.id } })}
-          />
+          <SwipeableRow
+            open={openRow?.id === item.id ? openRow.side : null}
+            onOpen={(side) => setOpenRow({ id: item.id, side })}
+            onClose={() => setOpenRow((cur) => (cur?.id === item.id ? null : cur))}
+            onDragStateChange={setDragging}
+            // Swipe right → mark it empty (only meaningful while it is in stock).
+            left={
+              item.status === 'in_stock'
+                ? {
+                    label: 'Empty',
+                    icon: 'glass-cocktail-off',
+                    color: colors.warning,
+                    dismisses: true,
+                    onPress: () => markEmpty(item),
+                  }
+                : undefined
+            }
+            // Swipe left → delete, behind the same confirmation as the detail screen.
+            right={{
+              label: 'Delete',
+              icon: 'trash-can-outline',
+              color: colors.danger,
+              onPress: () => setPendingDelete(item),
+            }}
+          >
+            <BottleRow
+              bottle={item}
+              kind={item.ingredient_id ? index?.byId.get(item.ingredient_id)?.kind ?? null : null}
+              units={units}
+              onPress={() => router.push({ pathname: '/bottle/[id]', params: { id: item.id } })}
+            />
+          </SwipeableRow>
         )}
+      />
+
+      <ConfirmSheet
+        visible={pendingDelete !== null}
+        title="Remove this bottle?"
+        message="It disappears from your bar and from what you can make. If you have just finished it, swipe the other way to mark it empty instead."
+        confirmLabel="Remove"
+        busy={deleteBottle.isPending}
+        onCancel={cancelDelete}
+        onConfirm={confirmDelete}
       />
     </Screen>
   );
@@ -307,7 +374,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xs,
   },
   listContent: {
-    paddingHorizontal: spacing.gutter,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xxl,
   },
@@ -317,13 +383,17 @@ const styles = StyleSheet.create({
   separator: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.borderSubtle,
-    marginLeft: spacing.lg,
+    marginLeft: spacing.gutter + spacing.lg,
+    marginRight: spacing.gutter,
   },
+  // Rows carry the gutter themselves so a swiped-open action pane can bleed to
+  // the screen edge.
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.lg - 2,
+    paddingHorizontal: spacing.gutter,
   },
   dot: {
     width: 6,
