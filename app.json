@@ -25,14 +25,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-<<<<<<< Updated upstream
         "android.permission.CAMERA"
-=======
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
->>>>>>> Stashed changes
       ]
     },
     "plugins": [
@@ -61,7 +54,7 @@
       }
     },
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "sdkVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/1ca54032-dc92-48b7-bc3c-81c2fc009e2f"
