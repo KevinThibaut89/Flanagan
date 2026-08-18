@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -64,6 +64,13 @@ export function ScanRecipe({
   const [sourceOpen, setSourceOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // Native UI cannot be presented over a modal that is still animating out
+  // (see `useModalDidClose`), so each sheet only records what should happen
+  // next and its `onDidClose` carries it out: confirm → source sheet, and
+  // source sheet → camera or library.
+  const openSourceAfterConfirm = useRef(false);
+  const pendingSource = useRef<PhotoSource | null>(null);
+
   function start() {
     // A form with typing in it deserves a warning before it is replaced; the
     // second scan after a first one does not — that content came from a scan.
@@ -77,8 +84,18 @@ export function ScanRecipe({
     onRead(recipe);
   }
 
-  async function choose(source: PhotoSource) {
+  function choose(source: PhotoSource) {
+    pendingSource.current = source;
     setSourceOpen(false);
+  }
+
+  function handleSourceClosed() {
+    const source = pendingSource.current;
+    pendingSource.current = null;
+    if (source) void pick(source);
+  }
+
+  async function pick(source: PhotoSource) {
     let uri: string | null = null;
     try {
       const picked = await pickRecipePhoto(source, { base64: true, quality: PAGE_PHOTO_QUALITY });
@@ -174,19 +191,24 @@ export function ScanRecipe({
 
       {status.kind === 'error' ? <Text style={styles.error}>{status.message}</Text> : null}
 
-      <BottomSheet visible={sourceOpen} onClose={() => setSourceOpen(false)} title="Scan a recipe">
+      <BottomSheet
+        visible={sourceOpen}
+        onClose={() => setSourceOpen(false)}
+        onDidClose={handleSourceClosed}
+        title="Scan a recipe"
+      >
         <View style={styles.options}>
           <SheetOption
             icon="camera-outline"
             label="Take a photo"
             detail="A book, a menu, a card"
-            onPress={() => void choose('camera')}
+            onPress={() => choose('camera')}
           />
           <SheetOption
             icon="image-multiple-outline"
             label="Choose from library"
             detail="A screenshot or a saved picture"
-            onPress={() => void choose('library')}
+            onPress={() => choose('library')}
           />
         </View>
         <Muted style={styles.privacy}>
@@ -224,10 +246,15 @@ export function ScanRecipe({
         message="What you’ve typed so far will be replaced by what the scan reads."
         confirmLabel="Scan"
         onConfirm={() => {
+          openSourceAfterConfirm.current = true;
           setConfirmOpen(false);
-          setSourceOpen(true);
         }}
         onCancel={() => setConfirmOpen(false)}
+        onDidClose={() => {
+          if (!openSourceAfterConfirm.current) return;
+          openSourceAfterConfirm.current = false;
+          setSourceOpen(true);
+        }}
       />
     </View>
   );

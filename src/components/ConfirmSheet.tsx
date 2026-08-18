@@ -1,5 +1,6 @@
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
+import { useModalDidClose } from './BottomSheet';
 import { Button } from './Button';
 import { Flourish, Heading } from './ui';
 import { useThemedStyles } from '../providers/theme';
@@ -16,6 +17,7 @@ export function ConfirmSheet({
   confirmLabel,
   onConfirm,
   onCancel,
+  onDidClose,
   busy = false,
 }: {
   visible: boolean;
@@ -24,11 +26,20 @@ export function ConfirmSheet({
   confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Runs once the sheet has fully left the screen — see `useModalDidClose`. */
+  onDidClose?: () => void;
   busy?: boolean;
 }) {
   const styles = useThemedStyles(makeStyles);
+  const handleDismiss = useModalDidClose(visible, onDidClose);
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+      onDismiss={handleDismiss}
+    >
       <Pressable style={styles.scrim} onPress={busy ? undefined : onCancel}>
         {/* Stop presses inside the sheet from falling through to the scrim. */}
         <Pressable style={styles.sheet} onPress={() => {}}>

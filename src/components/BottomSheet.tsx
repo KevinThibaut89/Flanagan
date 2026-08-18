@@ -1,10 +1,48 @@
-import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, type ReactNode } from 'react';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Heading } from './ui';
 import { useThemedStyles } from '../providers/theme';
 import { radius, spacing, type Theme } from '../theme';
+
+/**
+ * Fires `onDidClose` once a modal is really gone from the screen — not when it
+ * is asked to close.
+ *
+ * Anything that presents its own native UI (the image picker, the camera,
+ * another modal) fails silently on iOS if it is asked to present while a modal
+ * is still animating out: UIKit refuses to present over a dismissing view
+ * controller. Callers that want to open something *after* a sheet must wait for
+ * this hook, not for the state change that closed the sheet.
+ *
+ * On iOS the signal is `Modal`'s `onDismiss`, which runs when the dismissal
+ * finishes. That prop is iOS-only, so on Android we fire once `visible` flips
+ * off — Android dialogs go away synchronously and never block a new activity.
+ */
+export function useModalDidClose(visible: boolean, onDidClose?: () => void) {
+  const callback = useRef(onDidClose);
+  callback.current = onDidClose;
+  const wasVisible = useRef(visible);
+
+  useEffect(() => {
+    if (wasVisible.current && !visible && Platform.OS !== 'ios') {
+      callback.current?.();
+    }
+    wasVisible.current = visible;
+  }, [visible]);
+
+  return Platform.OS === 'ios' ? () => callback.current?.() : undefined;
+}
 
 /**
  * A themed sheet that rises from the bottom edge — the same scrim and raised
@@ -14,6 +52,7 @@ import { radius, spacing, type Theme } from '../theme';
 export function BottomSheet({
   visible,
   onClose,
+  onDidClose,
   title,
   headerAction,
   footer,
@@ -21,6 +60,8 @@ export function BottomSheet({
 }: {
   visible: boolean;
   onClose: () => void;
+  /** Runs once the sheet has fully left the screen — see `useModalDidClose`. */
+  onDidClose?: () => void;
   title?: string;
   /** Small text action on the right of the title, e.g. "Clear all". */
   headerAction?: { label: string; onPress: () => void } | null;
@@ -31,9 +72,16 @@ export function BottomSheet({
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const handleDismiss = useModalDidClose(visible, onDidClose);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      onDismiss={handleDismiss}
+    >
       <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close">
         {/* Stop presses inside the sheet from falling through to the scrim. */}
         <Pressable

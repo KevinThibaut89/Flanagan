@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -37,8 +37,23 @@ export function RecipePhoto({ recipeId, imageUrl }: { recipeId: string; imageUrl
 
   const busy = setPhoto.isPending || removePhoto.isPending;
 
-  async function choose(source: PhotoSource) {
+  // The picker cannot be presented while the sheet is still sliding away (see
+  // `useModalDidClose`), so a tap only records the choice; the sheet's
+  // `onDidClose` is what actually opens the camera or the library.
+  const pendingSource = useRef<PhotoSource | null>(null);
+
+  function choose(source: PhotoSource) {
+    pendingSource.current = source;
     setSheetOpen(false);
+  }
+
+  function handleSheetClosed() {
+    const source = pendingSource.current;
+    pendingSource.current = null;
+    if (source) void pick(source);
+  }
+
+  async function pick(source: PhotoSource) {
     setError(null);
     try {
       const picked = await pickRecipePhoto(source);
@@ -119,14 +134,15 @@ export function RecipePhoto({ recipeId, imageUrl }: { recipeId: string; imageUrl
       <BottomSheet
         visible={sheetOpen}
         onClose={() => setSheetOpen(false)}
+        onDidClose={handleSheetClosed}
         title={imageUrl ? 'Change photo' : 'Add a photo'}
       >
         <View style={styles.options}>
-          <SheetOption icon="camera-outline" label="Take a photo" onPress={() => void choose('camera')} />
+          <SheetOption icon="camera-outline" label="Take a photo" onPress={() => choose('camera')} />
           <SheetOption
             icon="image-multiple-outline"
             label="Choose from library"
-            onPress={() => void choose('library')}
+            onPress={() => choose('library')}
           />
           {imageUrl ? (
             <SheetOption
