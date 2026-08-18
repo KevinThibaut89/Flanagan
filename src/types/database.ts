@@ -14,6 +14,131 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_models: {
+        Row: {
+          cached_input_usd_per_mtok: number | null
+          input_usd_per_mtok: number
+          is_allowed: boolean
+          max_output_ceiling: number
+          model: string
+          notes: string | null
+          output_usd_per_mtok: number
+          priced_at: string
+        }
+        Insert: {
+          cached_input_usd_per_mtok?: number | null
+          input_usd_per_mtok: number
+          is_allowed?: boolean
+          max_output_ceiling?: number
+          model: string
+          notes?: string | null
+          output_usd_per_mtok: number
+          priced_at?: string
+        }
+        Update: {
+          cached_input_usd_per_mtok?: number | null
+          input_usd_per_mtok?: number
+          is_allowed?: boolean
+          max_output_ceiling?: number
+          model?: string
+          notes?: string | null
+          output_usd_per_mtok?: number
+          priced_at?: string
+        }
+        Relationships: []
+      }
+      ai_prompts: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          key: string
+          max_output_tokens: number
+          model: string
+          notes: string | null
+          reasoning_effort: string | null
+          system_prompt: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          max_output_tokens?: number
+          model: string
+          notes?: string | null
+          reasoning_effort?: string | null
+          system_prompt: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          max_output_tokens?: number
+          model?: string
+          notes?: string | null
+          reasoning_effort?: string | null
+          system_prompt?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_prompts_model_fkey"
+            columns: ["model"]
+            isOneToOne: false
+            referencedRelation: "ai_models"
+            referencedColumns: ["model"]
+          },
+        ]
+      }
+      ai_usage: {
+        Row: {
+          cached_input_tokens: number
+          cost_usd: number
+          created_at: string
+          id: number
+          input_tokens: number
+          key: string
+          model: string
+          output_tokens: number
+          prompt_version: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          cached_input_tokens?: number
+          cost_usd?: number
+          created_at?: string
+          id?: never
+          input_tokens?: number
+          key: string
+          model: string
+          output_tokens?: number
+          prompt_version?: number | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          cached_input_tokens?: number
+          cost_usd?: number
+          created_at?: string
+          id?: never
+          input_tokens?: number
+          key?: string
+          model?: string
+          output_tokens?: number
+          prompt_version?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bottles: {
         Row: {
           abv: number | null
@@ -136,6 +261,24 @@ export type Database = {
           },
         ]
       }
+      plan_limits: {
+        Row: {
+          key: string
+          monthly_limit: number | null
+          tier: Database["public"]["Enums"]["plan_tier"]
+        }
+        Insert: {
+          key: string
+          monthly_limit?: number | null
+          tier: Database["public"]["Enums"]["plan_tier"]
+        }
+        Update: {
+          key?: string
+          monthly_limit?: number | null
+          tier?: Database["public"]["Enums"]["plan_tier"]
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           abv: number | null
@@ -196,21 +339,33 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string | null
+          entitlement_source: string | null
+          entitlement_updated_at: string | null
           id: string
+          plus_expires_at: string | null
+          tier: Database["public"]["Enums"]["plan_tier"]
           unit_preference: Database["public"]["Enums"]["unit_preference"]
           updated_at: string
         }
         Insert: {
           created_at?: string
           display_name?: string | null
+          entitlement_source?: string | null
+          entitlement_updated_at?: string | null
           id: string
+          plus_expires_at?: string | null
+          tier?: Database["public"]["Enums"]["plan_tier"]
           unit_preference?: Database["public"]["Enums"]["unit_preference"]
           updated_at?: string
         }
         Update: {
           created_at?: string
           display_name?: string | null
+          entitlement_source?: string | null
+          entitlement_updated_at?: string | null
           id?: string
+          plus_expires_at?: string | null
+          tier?: Database["public"]["Enums"]["plan_tier"]
           unit_preference?: Database["public"]["Enums"]["unit_preference"]
           updated_at?: string
         }
@@ -365,12 +520,21 @@ export type Database = {
         Args: { p_recipe_id: string; p_user_id: string }
         Returns: boolean
       }
+      check_ai_quota: {
+        Args: { p_key: string; p_user_id: string }
+        Returns: Json
+      }
+      effective_tier: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Enums"]["plan_tier"]
+      }
       my_makeable_recipe_ids: {
         Args: never
         Returns: {
           recipe_id: string
         }[]
       }
+      my_plan: { Args: never; Returns: Json }
     }
     Enums: {
       bottle_kind: "bottle" | "staple"
@@ -402,6 +566,7 @@ export type Database = {
         | "pinch"
         | "splash"
         | "top"
+      plan_tier: "free" | "plus"
       product_source: "off" | "user"
       recipe_ice: "none" | "cubed" | "crushed" | "large_cube" | "block"
       recipe_method:
@@ -572,6 +737,7 @@ export const Constants = {
         "splash",
         "top",
       ],
+      plan_tier: ["free", "plus"],
       product_source: ["off", "user"],
       recipe_ice: ["none", "cubed", "crushed", "large_cube", "block"],
       recipe_method: [
@@ -604,6 +770,8 @@ export type Profile = Tables<'profiles'>
 export type Bottle = Tables<'bottles'>
 export type Recipe = Tables<'recipes'>
 export type RecipeIngredient = Tables<'recipe_ingredients'>
+export type AiUsage = Tables<'ai_usage'>
+export type PlanLimit = Tables<'plan_limits'>
 
 export type BottleInsert = TablesInsert<'bottles'>
 export type BottleUpdate = TablesUpdate<'bottles'>
@@ -620,3 +788,4 @@ export type RecipeMethod = Enums<'recipe_method'>
 export type RecipeIce = Enums<'recipe_ice'>
 export type MeasureUnit = Enums<'measure_unit'>
 export type UnitPreference = Enums<'unit_preference'>
+export type PlanTier = Enums<'plan_tier'>
