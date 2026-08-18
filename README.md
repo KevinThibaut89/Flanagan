@@ -125,6 +125,18 @@ exercised end to end without App Store Connect. The App Store and Play keys
 (`appl_…`, `goog_…`) replace it in the build profiles that ship; both are
 public keys, safe in the bundle.
 
+**Signing, for a local device build.** `ios/` is generated and git-ignored, so
+the signing team is not in the repo: after a `prebuild`, set it again with
+
+```sh
+npx expo run:ios --device   # or, in Xcode: target → Signing & Capabilities → Team
+```
+
+The project uses the free personal team `LN6G66U6J2` (Thibaut Kevin) with
+automatic signing. A free team can only issue a profile for a device it knows,
+so the iPhone must be connected, unlocked and in Developer Mode the first time;
+apps signed that way stop launching after seven days and need a rebuild.
+
 **Purchases need a development build.** `react-native-purchases` is a native
 module; in Expo Go the SDK falls back to a browser shim that needs a DOM and
 throws "document is not available" the moment a paywall is presented. The
