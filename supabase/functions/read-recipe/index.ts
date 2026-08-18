@@ -1,6 +1,9 @@
 import OpenAI from 'npm:openai@^6.9.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+import { json } from '../_shared/http.ts';
+import { checkQuota, recordUsage } from '../_shared/quota.ts';
+
 /**
  * Reads a cocktail recipe off a photograph — a page of a book, a menu, a
  * screenshot — so it can be typed in for you rather than by you.
@@ -253,13 +256,6 @@ const READ_SCHEMA = {
 const NOTHING_FOUND =
   "Couldn't find a recipe in that photo — try a flatter shot, with the whole recipe in frame.";
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
 function isMimeType(value: unknown): value is MimeType {
   return typeof value === 'string' && (MIME_TYPES as readonly string[]).includes(value);
 }
@@ -382,6 +378,12 @@ Deno.serve(async (request: Request) => {
     ? config.system_prompt.replaceAll('{{VOCABULARY}}', vocabularyBlock)
     : `${config.system_prompt}\n\n${vocabularyBlock}`;
 
+  // The image has been validated and the prompt loaded; this is the last
+  // point before money is spent, so it is where the month's allowance is
+  // checked.
+  const exhausted = await checkQuota(admin, user.id, PROMPT_KEY);
+  if (exhausted) return exhausted;
+
   const openai = new OpenAI({ apiKey: openaiKey });
 
   let response;
@@ -435,6 +437,18 @@ Deno.serve(async (request: Request) => {
       item.content.some((part: { type: string }) => part.type === 'refusal'),
   );
   const filtered = response.incomplete_details?.reason === 'content_filter';
+
+  await recordUsage(admin, {
+    userId: user.id,
+    key: PROMPT_KEY,
+    // The model as configured, not `response.model`: OpenAI may answer with a
+    // dated snapshot name, and it is the configured name that ai_models prices.
+    model: config.model,
+    promptVersion: config.version,
+    usage,
+    status: refused || filtered ? 'refused' : response.status === 'incomplete' ? 'incomplete' : 'ok',
+  });
+
   if (refused || filtered) {
     return json({ recipes: [], message: NOTHING_FOUND } satisfies ReadRecipeResponse);
   }

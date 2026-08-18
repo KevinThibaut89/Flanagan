@@ -1,6 +1,9 @@
 import OpenAI from 'npm:openai@^6.9.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+import { json } from '../_shared/http.ts';
+import { checkQuota, recordUsage } from '../_shared/quota.ts';
+
 /**
  * Guesses which canonical ingredient a hand-typed bottle counts as.
  *
@@ -45,13 +48,6 @@ const CLASSIFY_SCHEMA = {
   required: ['slug'],
   additionalProperties: false,
 } as const;
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
 
 Deno.serve(async (request: Request) => {
   if (request.method !== 'POST') return json({ error: 'Use POST.' }, 405);
@@ -139,6 +135,11 @@ Deno.serve(async (request: Request) => {
 
   const input = brand ? `Bottle: ${name}\nBrand: ${brand}` : `Bottle: ${name}`;
 
+  // Unlimited on every plan today (see plan_limits), but checked all the same
+  // so the limit is a row change if that ever needs to differ.
+  const exhausted = await checkQuota(admin, user.id, PROMPT_KEY);
+  if (exhausted) return exhausted;
+
   const openai = new OpenAI({ apiKey: openaiKey });
 
   let response;
@@ -177,6 +178,18 @@ Deno.serve(async (request: Request) => {
       item.content.some((part: { type: string }) => part.type === 'refusal'),
   );
   const filtered = response.incomplete_details?.reason === 'content_filter';
+
+  await recordUsage(admin, {
+    userId: user.id,
+    key: PROMPT_KEY,
+    // The model as configured, not `response.model`: OpenAI may answer with a
+    // dated snapshot name, and it is the configured name that ai_models prices.
+    model: config.model,
+    promptVersion: config.version,
+    usage,
+    status: refused || filtered ? 'refused' : response.status === 'incomplete' ? 'incomplete' : 'ok',
+  });
+
   if (refused || filtered || response.status === 'incomplete' || !response.output_text) {
     return json({ ingredient_id: null, slug: null } satisfies ClassifyResponse);
   }

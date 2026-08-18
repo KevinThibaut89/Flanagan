@@ -1,6 +1,8 @@
 import OpenAI from 'npm:openai@^6.9.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+import { json } from '../_shared/http.ts';
+import { checkQuota, recordUsage } from '../_shared/quota.ts';
 import { SUGGESTION_SCHEMA, type SuggestedRecipe } from './schema.ts';
 import { toMl } from './units.ts';
 
@@ -39,13 +41,6 @@ interface AvailableIngredient {
   kind: string;
   /** What the drinker's own bottle is called, when they own this directly. */
   label: string | null;
-}
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
 }
 
 Deno.serve(async (request: Request) => {
@@ -163,6 +158,12 @@ Deno.serve(async (request: Request) => {
     return json({ error: 'The suggestion service is not configured.' }, 500);
   }
 
+  // ── Is there an ask left this month? ───────────────────────────────────────
+  // Checked here, after the empty-bar return and the config read, so that
+  // nothing that never reaches OpenAI is charged to the person's allowance.
+  const exhausted = await checkQuota(admin, user.id, PROMPT_KEY);
+  if (exhausted) return exhausted;
+
   // ── Ask OpenAI ─────────────────────────────────────────────────────────────
   const openai = new OpenAI({ apiKey: openaiKey });
 
@@ -229,6 +230,19 @@ Deno.serve(async (request: Request) => {
       item.content.some((part: { type: string }) => part.type === 'refusal'),
   );
   const filtered = response.incomplete_details?.reason === 'content_filter';
+
+  // Whatever happens next, the tokens were spent: record them, and count the
+  // call against this month's allowance.
+  await recordUsage(admin, {
+    userId: user.id,
+    key: PROMPT_KEY,
+    // The model as configured, not `response.model`: OpenAI may answer with a
+    // dated snapshot name, and it is the configured name that ai_models prices.
+    model: config.model,
+    promptVersion: config.version,
+    usage,
+    status: refused || filtered ? 'refused' : response.status === 'incomplete' ? 'incomplete' : 'ok',
+  });
 
   if (refused || filtered) {
     return json({
