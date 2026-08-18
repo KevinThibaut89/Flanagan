@@ -21,8 +21,8 @@ const PHOTO_QUALITY = 0.7;
 export interface PickedPhoto {
   uri: string;
   mimeType: string;
-  /** Only present when asked for; a base64 photo is megabytes of JS memory. */
-  base64?: string;
+  /** Pixel dimensions, when the picker reports them; `shrinkForModel` wants them. */
+  size: { width: number; height: number } | null;
 }
 
 export type PhotoSource = 'camera' | 'library';
@@ -32,20 +32,18 @@ export type PhotoSource = 'camera' | 'library';
  * null when the user backs out. Throws when the picker itself fails or a
  * permission is refused, with a message fit for showing as-is.
  *
- * `base64` is for callers that send the picture to an edge function rather
- * than upload it: the recipe scanner needs the bytes in JS, the photo upload
- * streams them from disk instead.
+ * Never base64: the photo upload streams the file from disk, and the recipe
+ * scanner resizes it first (`shrinkForModel`), which produces its own.
  */
 export async function pickRecipePhoto(
   source: PhotoSource,
-  { base64 = false, quality = PHOTO_QUALITY }: { base64?: boolean; quality?: number } = {},
+  { quality = PHOTO_QUALITY }: { quality?: number } = {},
 ): Promise<PickedPhoto | null> {
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ['images'],
     allowsMultipleSelection: false,
     quality,
     exif: false,
-    base64,
   };
 
   let result: ImagePicker.ImagePickerResult;
@@ -62,14 +60,13 @@ export async function pickRecipePhoto(
   if (result.canceled) return null;
   const asset = result.assets[0];
   if (!asset?.uri) throw new Error('Could not read that photo.');
-  if (base64 && !asset.base64) throw new Error('Could not read that photo.');
 
   // The picker re-encodes to JPEG whenever it applies `quality`; the mime type
   // is only ever something else when it hands the file back untouched.
   return {
     uri: asset.uri,
     mimeType: asset.mimeType ?? 'image/jpeg',
-    ...(base64 && asset.base64 ? { base64: asset.base64 } : {}),
+    size: asset.width && asset.height ? { width: asset.width, height: asset.height } : null,
   };
 }
 

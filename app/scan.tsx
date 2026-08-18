@@ -13,7 +13,7 @@ import { Chip } from '../src/components/Chip';
 import { Body, Heading, Muted, Screen } from '../src/components/ui';
 import { lookupBarcode } from '../src/data/products';
 import { setPendingCapture, type ShelfCapture } from '../src/data/shelfCapture';
-import type { ShelfMimeType } from '../src/data/identify';
+import { shrinkForModel } from '../src/lib/images';
 import { ThemeScope, useTheme, useThemedStyles } from '../src/providers/theme';
 import { radius, spacing, type Theme } from '../src/theme';
 
@@ -28,11 +28,11 @@ const BARCODE_TYPES = ['ean13', 'ean8', 'upc_a', 'upc_e'] as const;
 const RESCAN_COOLDOWN_MS = 3000;
 
 /**
- * JPEG quality for shelf photos. The labels stay legible at this level and the
- * base64 payload sent to the recognition function stays around a megabyte;
- * anything higher is bandwidth for detail the model does not need.
+ * JPEG quality asked of the camera and the picker. The photo is resized and
+ * re-encoded for the model afterwards (see `shrinkForModel`), so this only
+ * needs to be high enough not to lose label text before that step.
  */
-const SHELF_PHOTO_QUALITY = 0.5;
+const SHELF_PHOTO_QUALITY = 0.8;
 
 /**
  * Two ways in through the same camera: one bottle by its barcode, or a whole
@@ -49,9 +49,6 @@ type Status =
 
 const SHELF_MIME_TYPES: readonly string[] = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
 
-function asShelfMimeType(value: string | undefined): ShelfMimeType {
-  return value && SHELF_MIME_TYPES.includes(value) ? (value as ShelfMimeType) : 'image/jpeg';
-}
 
 /**
  * The scanner is always the dark room: its chrome floats over a black camera
@@ -170,12 +167,10 @@ function Scanner() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      const photo = await camera.current.takePictureAsync({
-        quality: SHELF_PHOTO_QUALITY,
-        base64: true,
-      });
-      if (!photo?.base64) throw new Error('The camera returned no picture.');
-      submitCapture({ uri: photo.uri, base64: photo.base64, mimeType: 'image/jpeg' });
+      const photo = await camera.current.takePictureAsync({ quality: SHELF_PHOTO_QUALITY });
+      if (!photo?.uri) throw new Error('The camera returned no picture.');
+      const shrunk = await shrinkForModel(photo.uri, { width: photo.width, height: photo.height });
+      submitCapture({ uri: shrunk.uri, base64: shrunk.base64, mimeType: shrunk.mimeType });
     } catch (cause) {
       setShelfError(cause instanceof Error ? cause.message : 'Could not take the photo.');
     } finally {
@@ -193,20 +188,15 @@ function Scanner() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: false,
-        base64: true,
         quality: SHELF_PHOTO_QUALITY,
+        exif: false,
       });
       if (result.canceled) return;
 
       const asset = result.assets[0];
-      if (!asset?.base64) throw new Error('Could not read that photo.');
-      submitCapture({
-        uri: asset.uri,
-        base64: asset.base64,
-        // The picker re-encodes to JPEG whenever it applies `quality`; the mime
-        // type is only ever something else when it hands the file back as-is.
-        mimeType: asShelfMimeType(asset.mimeType),
-      });
+      if (!asset?.uri) throw new Error('Could not read that photo.');
+      const shrunk = await shrinkForModel(asset.uri, { width: asset.width, height: asset.height });
+      submitCapture({ uri: shrunk.uri, base64: shrunk.base64, mimeType: shrunk.mimeType });
     } catch (cause) {
       setShelfError(cause instanceof Error ? cause.message : 'Could not open your photos.');
     } finally {

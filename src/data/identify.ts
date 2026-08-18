@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 
 import { supabase } from '../lib/supabase';
+import { asQuotaError, useInvalidatePlan } from './plan';
 
 export type IdentifyConfidence = 'high' | 'medium' | 'low';
 
@@ -31,6 +32,7 @@ export type ShelfMimeType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/h
  * the returned `message` rather than treating it as a failure.
  */
 export function useIdentifyBottles() {
+  const invalidatePlan = useInvalidatePlan();
   return useMutation({
     mutationFn: async (input: {
       base64: string;
@@ -41,9 +43,10 @@ export function useIdentifyBottles() {
         { body: { image: input.base64, mimeType: input.mimeType } },
       );
 
-      if (error) throw error;
+      if (error) throw await asQuotaError(error);
       if (!data) throw new Error('The recognition service returned nothing.');
       return data;
     },
+    onSettled: () => void invalidatePlan(),
   });
 }

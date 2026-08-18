@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 
 import { supabase } from '../lib/supabase';
+import { asQuotaError, useInvalidatePlan } from './plan';
 import type { MeasureUnit, RecipeIce, RecipeMethod } from '../types/database';
 import type { ShelfMimeType } from './identify';
 
@@ -49,6 +50,7 @@ export interface ReadRecipeResponse {
  * `message` rather than treating it as a failure.
  */
 export function useReadRecipe() {
+  const invalidatePlan = useInvalidatePlan();
   return useMutation({
     mutationFn: async (input: {
       base64: string;
@@ -58,9 +60,10 @@ export function useReadRecipe() {
         body: { image: input.base64, mimeType: input.mimeType },
       });
 
-      if (error) throw error;
+      if (error) throw await asQuotaError(error);
       if (!data) throw new Error('The recipe reader returned nothing.');
       return data;
     },
+    onSettled: () => void invalidatePlan(),
   });
 }

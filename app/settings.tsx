@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -14,8 +15,10 @@ import {
   Screen,
   Title,
 } from '../src/components/ui';
+import { usePlan, type Plan } from '../src/data/plan';
 import { useAuth } from '../src/providers/auth';
 import { usePreferences } from '../src/providers/preferences';
+import { usePurchases } from '../src/providers/purchases';
 import {
   useTheme,
   useThemePreference,
@@ -86,6 +89,89 @@ function OptionList<T extends string>({
   );
 }
 
+/**
+ * Which plan, what it has left, and the way in or out. Purchases and their
+ * management are RevenueCat's screens (paywall, Customer Center); this card
+ * only says where things stand and opens them.
+ */
+function PlanSection() {
+  const styles = useThemedStyles(makeStyles);
+  const { data: plan } = usePlan();
+  const router = useRouter();
+  const { available, unavailableReason, isPlus, loading, presentPaywall, restore } =
+    usePurchases();
+  const [restoreNote, setRestoreNote] = useState<string | null>(null);
+
+  // The server's tier is what the allowances follow; RevenueCat's is what a
+  // purchase made a moment ago says. Show Plus if either does, so the person
+  // is not told they are free in the seconds before the webhook lands.
+  const plus = isPlus || plan?.tier === 'plus';
+
+  const expiry = plan?.plus_expires_at ? new Date(plan.plus_expires_at) : null;
+  const standing = !plus
+    ? 'Free'
+    : expiry
+      ? `Plus · renews ${expiry.toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}`
+      : 'Plus · lifetime';
+
+  async function handleRestore() {
+    setRestoreNote(null);
+    const restored = await restore();
+    setRestoreNote(restored ? 'Restored — you’re on Plus.' : 'No previous purchase to restore.');
+  }
+
+  return (
+    <View style={styles.section}>
+      <Label>Plan</Label>
+      <Card>
+        <Muted>You’re on</Muted>
+        <Body style={styles.email}>{standing}</Body>
+        {plan ? <UsageLines plan={plan} /> : null}
+      </Card>
+      {!available ? (
+        <Muted style={styles.note}>
+          {loading ? 'Checking the store…' : (unavailableReason ?? 'Purchases are not available in this build.')}
+        </Muted>
+      ) : plus ? (
+        // Our own route around the Customer Center: the SDK's presenter cannot
+        // show it over this modal (see app/manage.tsx).
+        <Button
+          label="Manage subscription"
+          variant="secondary"
+          onPress={() => router.push('/manage')}
+        />
+      ) : (
+        <>
+          <Button label="Get Flanagan Plus" onPress={() => void presentPaywall()} />
+          <Button label="Restore purchases" variant="ghost" onPress={() => void handleRestore()} />
+        </>
+      )}
+      {restoreNote ? <Muted style={styles.note}>{restoreNote}</Muted> : null}
+    </View>
+  );
+}
+
+/** "3 of 5 asks · 1 of 1 shelf photo · 0 of 3 recipe photos, until 1 September". */
+function UsageLines({ plan }: { plan: Plan }) {
+  const styles = useThemedStyles(makeStyles);
+  const parts: string[] = [];
+  const line = (used: number, limit: number | null, noun: string, plural: string) =>
+    limit === null ? null : `${used} of ${limit} ${limit === 1 ? noun : plural}`;
+
+  const asks = line(plan.quotas.suggest_cocktails?.used ?? 0, plan.quotas.suggest_cocktails?.limit ?? null, 'ask', 'asks');
+  const shelves = line(plan.quotas.identify_bottles?.used ?? 0, plan.quotas.identify_bottles?.limit ?? null, 'shelf photo', 'shelf photos');
+  const pages = line(plan.quotas.read_recipe?.used ?? 0, plan.quotas.read_recipe?.limit ?? null, 'recipe photo', 'recipe photos');
+  for (const part of [asks, shelves, pages]) if (part) parts.push(part);
+  if (parts.length === 0) return null;
+
+  const resets = new Date(plan.resets_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
+  return (
+    <Muted style={styles.usage}>
+      {parts.join(' · ')} this month. Counters reset on {resets}.
+    </Muted>
+  );
+}
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
@@ -117,6 +203,8 @@ export default function SettingsScreen() {
           <Label>Appearance</Label>
           <OptionList options={THEME_OPTIONS} value={preference} onChange={setPreference} />
         </View>
+
+        <PlanSection />
 
         <View style={styles.section}>
           <Label>Account</Label>
@@ -174,5 +262,8 @@ const makeStyles = ({ colors }: Theme) =>
       marginTop: spacing.xs,
       fontWeight: '600',
       color: colors.cream,
+    },
+    usage: {
+      marginTop: spacing.sm,
     },
   });

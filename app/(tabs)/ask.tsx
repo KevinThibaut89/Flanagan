@@ -13,6 +13,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Button } from '../../src/components/Button';
 import { Chip } from '../../src/components/Chip';
+import { PlusNotice } from '../../src/components/PlusNotice';
 import { RecipeIngredientList } from '../../src/components/RecipeIngredientList';
 import {
   Body,
@@ -26,12 +27,14 @@ import {
   Title,
 } from '../../src/components/ui';
 import { useAvailableIngredientIds, useBottles } from '../../src/data/bottles';
+import { isQuotaExceeded, remainingLabel, usePlan } from '../../src/data/plan';
 import { useSaveRecipe } from '../../src/data/recipes';
 import {
   draftToPreview,
   useSuggestCocktails,
   type SuggestedRecipe,
 } from '../../src/data/suggestions';
+import { usePurchases } from '../../src/providers/purchases';
 import { useTheme, useThemedStyles } from '../../src/providers/theme';
 import { spacing, typography, type Theme } from '../../src/theme';
 
@@ -69,6 +72,13 @@ export default function AskScreen() {
 
   const available = useAvailableIngredientIds();
   const { data: bottles } = useBottles();
+  const { data: plan } = usePlan();
+  const { presentPaywall } = usePurchases();
+
+  // Free plan only: how many asks the month has left. Plus is capped too, but
+  // at a level nobody meets, and a running count there would only nag.
+  const asksLeft =
+    plan?.tier === 'free' ? remainingLabel(plan.quotas.suggest_cocktails, 'ask') : null;
 
   const inStockCount = useMemo(
     () => (bottles ?? []).filter((bottle) => bottle.status === 'in_stock').length,
@@ -81,6 +91,20 @@ export default function AskScreen() {
     setQuery(trimmed);
     suggest.mutate(trimmed);
   }
+
+  // The month's asks ran out: offer Plus straight away, once per exhaustion,
+  // and if they take it, run the ask they were making.
+  const quotaError = isQuotaExceeded(suggest.error) ? suggest.error : null;
+  const offeredFor = useRef<unknown>(null);
+  useEffect(() => {
+    if (!quotaError || offeredFor.current === quotaError) return;
+    offeredFor.current = quotaError;
+    void presentPaywall().then((outcome) => {
+      if (outcome === 'purchased' || outcome === 'restored') ask(query);
+    });
+    // `ask` and `query` are read at the moment the paywall closes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quotaError]);
 
   // Home's ask line lands here as /ask?q=…&t=…; run the prompt straight away.
   // `t` is a send stamp so the same words sent twice still run twice.
@@ -111,6 +135,7 @@ export default function AskScreen() {
               Answers come only from the {inStockCount}{' '}
               {inStockCount === 1 ? 'thing' : 'things'} you have in stock.
             </Muted>
+            {asksLeft ? <Muted style={styles.asksLeft}>{asksLeft}</Muted> : null}
           </View>
 
           <View style={styles.inputBlock}>
@@ -145,7 +170,9 @@ export default function AskScreen() {
             </View>
           ) : null}
 
-          {suggest.error ? (
+          {quotaError ? (
+            <PlusNotice error={quotaError} onUnlocked={() => ask(query)} />
+          ) : suggest.error ? (
             <View style={styles.notice}>
               <MaterialCommunityIcons name="alert-outline" size={18} color={colors.danger} />
               <Body style={styles.noticeText}>
@@ -273,6 +300,9 @@ const makeStyles = ({ colors }: Theme) => StyleSheet.create({
   },
   header: {
     gap: spacing.xs,
+  },
+  asksLeft: {
+    color: colors.accent,
   },
   inputBlock: {
     gap: spacing.lg,
