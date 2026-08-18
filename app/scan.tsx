@@ -6,6 +6,7 @@ import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'ex
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../src/components/Button';
 import { Chip } from '../src/components/Chip';
@@ -69,6 +70,9 @@ function Scanner() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const insets = useSafeAreaInsets();
+  // Camera is full-bleed; only the chrome clears the notch / Dynamic Island.
+  const chromeTop = insets.top + spacing.md;
   const [permission, requestPermission] = useCameraPermissions();
   const [mode, setMode] = useState<Mode>('barcode');
   const [status, setStatus] = useState<Status>({ kind: 'scanning' });
@@ -344,7 +348,7 @@ function Scanner() {
       </View>
 
       <Pressable
-        style={styles.close}
+        style={[styles.close, { top: chromeTop }]}
         onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         accessibilityRole="button"
         accessibilityLabel="Close the scanner"
@@ -352,13 +356,13 @@ function Scanner() {
         <MaterialCommunityIcons name="close" size={20} color={colors.text} />
       </Pressable>
 
-      <View style={styles.modes} pointerEvents="box-none">
+      <View style={[styles.modes, { top: chromeTop }]} pointerEvents="box-none">
         <Chip label="Barcode" active={mode === 'barcode'} onPress={() => switchMode('barcode')} />
         <Chip label="Shelf" active={mode === 'shelf'} onPress={() => switchMode('shelf')} />
       </View>
 
       <Pressable
-        style={styles.manual}
+        style={[styles.manual, { top: chromeTop }]}
         onPress={() => router.push('/bottle/new')}
         accessibilityRole="button"
         accessibilityLabel="Add a bottle by hand"
@@ -422,7 +426,6 @@ const makeStyles = ({ colors }: Theme) =>
     },
     close: {
       position: 'absolute',
-      top: spacing.xxl + spacing.lg,
       left: spacing.gutter,
       width: 40,
       height: 40,
@@ -433,7 +436,6 @@ const makeStyles = ({ colors }: Theme) =>
     },
     modes: {
       position: 'absolute',
-      top: spacing.xxl + spacing.lg,
       left: 0,
       right: 0,
       flexDirection: 'row',
@@ -443,7 +445,6 @@ const makeStyles = ({ colors }: Theme) =>
     },
     manual: {
       position: 'absolute',
-      top: spacing.xxl + spacing.lg,
       right: spacing.gutter,
       width: 40,
       height: 40,
