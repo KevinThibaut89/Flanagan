@@ -27,13 +27,17 @@ Expo app
   ├── supabase-js ─────────────►  Postgres (row-level security, per user)
   │                               Auth (email six-digit code)
   │                               Storage (`recipe-photos`, per-user folders)
-  └── functions.invoke() ──────►  Edge functions (Deno)
-                                   ├── lookup-barcode    → Open Food Facts
-                                   ├── classify-bottle   → OpenAI
-                                   ├── identify-bottles  → OpenAI (vision)
-                                   ├── read-recipe       → OpenAI (vision)
-                                   └── suggest-cocktails → OpenAI
-                                        (prompt + model from `ai_prompts`)
+  ├── functions.invoke() ──────►  Edge functions (Deno)
+  │                                ├── lookup-barcode    → Open Food Facts
+  │                                ├── classify-bottle   → OpenAI
+  │                                ├── identify-bottles  → OpenAI (vision)
+  │                                ├── read-recipe       → OpenAI (vision)
+  │                                └── suggest-cocktails → OpenAI
+  │                                     (prompt + model from `ai_prompts`,
+  │                                      allowance from `plan_limits`,
+  │                                      every call logged to `ai_usage`)
+  └── react-native-purchases ───►  RevenueCat (paywall, Customer Center)
+                                    └── webhook → revenuecat-webhook → profiles.tier
 ```
 
 Two ideas carry most of the design:
@@ -59,7 +63,7 @@ display concern.
 
 The Supabase project (`qhmovlrsmwlkfgypwglr`, eu-west-2) is already provisioned:
 migrations applied, 177 ingredients seeded, row-level security on every table,
-and both edge functions deployed. Three things remain.
+and the edge functions deployed. Four things remain.
 
 ### 1. The OpenAI key
 
@@ -84,7 +88,44 @@ configuration to get wrong. Supabase sends a link by default — in **Authentica
 Your Flanagan code is {{ .Token }}
 ```
 
-### 3. Run it
+### 3. RevenueCat
+
+Purchases go through RevenueCat, which owns the paywall and the Customer
+Center; the app never talks to StoreKit or Play Billing itself. In the
+RevenueCat dashboard the project needs:
+
+- an **entitlement** with the identifier `Flanagan Plus` — the app compares
+  this string byte for byte (`src/lib/revenuecat.ts`);
+- three **products**, `monthly`, `yearly` and `lifetime`, attached to that
+  entitlement, and an **offering** `default` whose packages are the standard
+  `$rc_monthly`, `$rc_annual` and `$rc_lifetime`;
+- a **paywall** and the **Customer Center** configured on that offering (both
+  are dashboard-designed; the app just presents them);
+- a **webhook** pointing at
+  `https://qhmovlrsmwlkfgypwglr.supabase.co/functions/v1/revenuecat-webhook`
+  with an Authorization header value of your choosing, and the same value set
+  as a function secret:
+
+  ```sh
+  supabase secrets set REVENUECAT_WEBHOOK_SECRET=<the same string> --project-ref qhmovlrsmwlkfgypwglr
+  ```
+
+The webhook is the only writer of `profiles.tier` — the app cannot declare
+itself Plus, and the edge functions meter against the profile — so until it
+fires, a purchase unlocks the screens but not the allowances. RevenueCat
+delivers within seconds and retries on anything but a 2xx.
+
+The app reads `EXPO_PUBLIC_REVENUECAT_API_KEY` from `.env`. A **Test Store**
+key (`test_…`) drives RevenueCat's simulated store and works everywhere,
+Expo Go included (the SDK falls back to its browser mode there). The App
+Store and Play keys (`appl_…`, `goog_…`) replace it in the build profiles
+that ship; both are public keys, safe in the bundle.
+
+Enrol in Apple's Small Business Program and Google's equivalent before
+launch: the 15% rather than 30% commission is the largest single line in the
+margin.
+
+### 4. Run it
 
 `.env` is already filled in with the project URL and publishable key (both safe
 in the bundle — the key grants only what row-level security allows). If you're
@@ -144,7 +185,11 @@ supabase functions deploy classify-bottle
 supabase functions deploy identify-bottles
 supabase functions deploy read-recipe
 supabase functions deploy suggest-cocktails
+supabase functions deploy revenuecat-webhook --no-verify-jwt   # RevenueCat has no Supabase JWT
 ```
+
+The AI functions share `supabase/functions/_shared/` (the JSON helper and the
+allowance check), which the CLI uploads alongside each function.
 
 ---
 
@@ -163,14 +208,40 @@ supabase functions deploy suggest-cocktails
   gets substituted; drop it and the function appends the list anyway rather than
   ask a model to guess. The table is deliberately unreadable to the app: only the
   edge function's service-role client sees it.
+- **The model is a row, but not a free one.** `ai_prompts.model` must reference
+  an *allowed* row in `ai_models`, which carries the list price the model was
+  costed at and the highest `max_output_tokens` a prompt may set for it. That
+  is the guardrail on the economics: an Ask costs about $0.004 on
+  `gpt-5.6-luna` and $0.25 on `gpt-5.4` at the same 16k ceiling, and without
+  the constraint that swing was one `UPDATE` away. To try a new model, insert
+  its `ai_models` row (with prices) first; a model in use by an active prompt
+  cannot be disallowed out from under it.
+- **Every model call is written down.** The four AI functions insert one
+  `ai_usage` row per call — who, which prompt, tokens in and out, and the
+  cost, filled from `ai_models` by trigger. That is what the plan's monthly
+  counters read, and what turns the projections behind the price list into
+  real numbers: `select key, count(*), sum(cost_usd) from ai_usage where
+  created_at > now() - interval '30 days' group by 1`.
+- **Plans are rows too.** `plan_limits` holds calls per calendar month per
+  tier and call site (`null` = unlimited): free has 5 asks, 1 shelf photo and
+  3 recipe photos; Plus has 150, 20 and 25 — past any real use, and there
+  only to cap a runaway account. `check_ai_quota(user, key)` is what each
+  function asks before spending money, and it answers 402 with
+  `{code:'quota_exceeded', quota}` when the month is used up; the app turns
+  that into the paywall rather than an error. `my_plan()` is the one round
+  trip behind "4 asks left this month" and the Plan card in Settings. Nobody
+  is expensive — the heaviest plausible user is under twenty cents of tokens a
+  month — so the numbers are about the offer, not the cost.
 - **A shelf photo is a prefill, not an import.** The scanner's *Shelf* mode
   sends one photo (taken there, or picked from the library) to
   `identify-bottles`, which lists every bottle it can read a label for and pins
   each to an ingredient slug under the same rules as `classify-bottle`. What
   comes back is a review list: doubtful readings and bottles already on the
   shelf start unticked, "counts as" is a tap away from being changed, and only
-  the ticked rows are inserted — in one batch, when you say so. The photo is not
-  stored anywhere.
+  the ticked rows are inserted — in one batch, when you say so. The photo is
+  resized to 1536px on its long side before it leaves the phone (OpenAI would
+  scale it down on arrival anyway; this saves the upload) and is not stored
+  anywhere.
 - **Recipe photos are the one thing in Storage.** A saved recipe can carry a
   picture of the finished drink, taken there or picked from the library. Objects
   live in the public `recipe-photos` bucket at `<user>/<recipe>/<stamp>.jpg`;
