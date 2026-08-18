@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -12,7 +13,7 @@ import { Body, Heading, Muted, Screen } from '../src/components/ui';
 import { lookupBarcode } from '../src/data/products';
 import { setPendingCapture, type ShelfCapture } from '../src/data/shelfCapture';
 import type { ShelfMimeType } from '../src/data/identify';
-import { useTheme, useThemedStyles } from '../src/providers/theme';
+import { ThemeScope, useTheme, useThemedStyles } from '../src/providers/theme';
 import { radius, spacing, type Theme } from '../src/theme';
 
 /** Barcode symbologies actually printed on bottles. */
@@ -51,7 +52,20 @@ function asShelfMimeType(value: string | undefined): ShelfMimeType {
   return value && SHELF_MIME_TYPES.includes(value) ? (value as ShelfMimeType) : 'image/jpeg';
 }
 
+/**
+ * The scanner is always the dark room: its chrome floats over a black camera
+ * feed, so it is pinned to the dark palette even when the app is in light mode.
+ */
 export default function ScanScreen() {
+  return (
+    <ThemeScope scheme="dark">
+      <StatusBar style="light" />
+      <Scanner />
+    </ThemeScope>
+  );
+}
+
+function Scanner() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);

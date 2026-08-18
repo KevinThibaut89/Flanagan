@@ -10,7 +10,7 @@ import {
 import { Appearance, useColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-import { darkTheme, lightTheme, type Theme } from '../theme';
+import { darkTheme, lightTheme, type ColorScheme, type Theme } from '../theme';
 
 /** What the user asked for. `system` defers to the OS appearance. */
 export type ThemePreference = 'dark' | 'light' | 'system';
@@ -75,6 +75,20 @@ export function ThemeProvider({
     [theme, preference, setPreference],
   );
 
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+/**
+ * Pins a subtree to one scheme regardless of the user's choice. The scanner
+ * lives here: its chrome floats over a black camera feed, so it is always the
+ * dark room even when the rest of the app is in daylight.
+ */
+export function ThemeScope({ scheme, children }: { scheme: ColorScheme; children: ReactNode }) {
+  const parent = useThemeContext();
+  const value = useMemo<ThemeContextValue>(
+    () => ({ ...parent, theme: scheme === 'light' ? lightTheme : darkTheme }),
+    [parent, scheme],
+  );
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
