@@ -12,11 +12,16 @@
 /** The single entitlement that unlocks the paid allowances. */
 export const ENTITLEMENT_ID = 'Flanagan Plus';
 
-/** Product identifiers, as configured in the store(s) and RevenueCat. */
+/**
+ * Product identifiers, as configured in the store(s) and RevenueCat. The app
+ * never buys by product id — it presents the offering's packages
+ * (`$rc_monthly` / `$rc_annual` / `$rc_lifetime`) — so these are here for
+ * reference and for anything that reads CustomerInfo.productIdentifier.
+ */
 export const PRODUCT_IDS = {
-  lifetime: 'lifetime',
-  yearly: 'yearly',
-  monthly: 'monthly',
+  monthly: 'plus_monthly',
+  yearly: 'plus_yearly',
+  lifetime: 'plus_lifetime',
 } as const;
 
 /** The offering whose paywall the app presents. */

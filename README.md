@@ -96,9 +96,13 @@ RevenueCat dashboard the project needs:
 
 - an **entitlement** with the identifier `Flanagan Plus` — the app compares
   this string byte for byte (`src/lib/revenuecat.ts`);
-- three **products**, `monthly`, `yearly` and `lifetime`, attached to that
-  entitlement, and an **offering** `default` whose packages are the standard
-  `$rc_monthly`, `$rc_annual` and `$rc_lifetime`;
+- three **products**, `plus_monthly` (£3.49), `plus_yearly` (£24.99) and
+  `plus_lifetime` (£49.99), attached to that entitlement, and an **offering**
+  `default` whose packages are the standard `$rc_monthly`, `$rc_annual` and
+  `$rc_lifetime`. The Test Store copies of these are priced in USD at the same
+  numbers (Test Store prices are immutable and USD-only; the GBP prices come
+  from App Store Connect and Play when those apps are added with the same
+  product ids);
 - a **paywall** and the **Customer Center** configured on that offering (both
   are dashboard-designed; the app just presents them);
 - a **webhook** pointing at
