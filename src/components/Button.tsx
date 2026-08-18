@@ -1,8 +1,9 @@
-import { ActivityIndicator, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 import { PressableScale } from './ui';
+import { ShakerLoader } from './ShakerLoader';
 import { useTheme, useThemedStyles } from '../providers/theme';
 import { radius, spacing, type Theme } from '../theme';
 
@@ -36,7 +37,7 @@ export function Button({
   }
 
   const content = loading ? (
-    <ActivityIndicator color={variants[variant].text.color} size="small" />
+    <ShakerLoader color={variants[variant].text.color} size={size === 'sm' ? 18 : 22} />
   ) : (
     <Text style={[styles.label, size === 'sm' && styles.labelSm, variants[variant].text]}>
       {label}

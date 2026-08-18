@@ -1,44 +1,51 @@
-import { useMemo } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
+import { useMemo, useState } from 'react';
+import {
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
-import { Chip } from '../../src/components/Chip';
 import { useColorForKind } from '../../src/components/CategoryPill';
 import {
-  Body,
   Display,
   Flourish,
   Heading,
   Loading,
   Monogram,
   Muted,
-  OrnamentRule,
   PressableScale,
   Reveal,
   Screen,
   SectionHeader,
+  Title,
 } from '../../src/components/ui';
 import { useAvailableIngredientIds, useBottles } from '../../src/data/bottles';
 import { useIngredientIndex } from '../../src/data/ingredients';
 import {
   canMake,
+  missingIngredients,
   recipeNumbers,
   useRecipes,
   type RecipeWithIngredients,
 } from '../../src/data/recipes';
 import { useTheme, useThemedStyles } from '../../src/providers/theme';
 import { spacing, typography, type Theme } from '../../src/theme';
-import type { Bottle } from '../../src/types/database';
 
-const MOODS: Array<{ label: string; prompt: string }> = [
-  { label: 'Bitter & stirred', prompt: 'Something bitter and stirred' },
-  { label: 'Fresh & citrusy', prompt: 'Something fresh and citrusy' },
-  { label: 'Short & strong', prompt: 'Something short, strong and spirit-forward' },
-  { label: 'Surprise me', prompt: 'Surprise me with something I would not think of' },
-];
+/** How much of the next card peeks in from the right edge. */
+const CARD_PEEK = 40;
+const CARD_GAP = spacing.md;
+/** A bottle counts as "new on the shelf" for this long after it is added. */
+const NEW_BOTTLE_DAYS = 7;
+const ONE_AWAY_ROWS = 3;
 
 function greetingForHour(hour: number): string {
   if (hour < 5) return 'Still up?';
@@ -47,11 +54,18 @@ function greetingForHour(hour: number): string {
   return 'Good evening';
 }
 
+/**
+ * Home is tonight's menu, not a dashboard: a greeting with two live counts,
+ * one line to ask the barkeep, the makeable cocktails as a swipeable deck,
+ * and a single line for whatever has run out. Everything else lives on the
+ * tab it belongs to.
+ */
 export default function HomeScreen() {
   const { colors, gradients } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const colorForKind = useColorForKind();
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { data: bottles, isLoading: bottlesLoading } = useBottles();
   const { data: recipes, isLoading: recipesLoading } = useRecipes();
   const available = useAvailableIngredientIds();
@@ -72,7 +86,7 @@ export default function HomeScreen() {
   );
   const numbers = useMemo(() => recipeNumbers(recipes ?? []), [recipes]);
 
-  // Favourites lead the shelf; the rest keep their newest-first order.
+  // Favourites lead the deck; the rest keep their newest-first order.
   const picks = useMemo(
     () =>
       [...makeable]
@@ -81,10 +95,64 @@ export default function HomeScreen() {
     [makeable],
   );
 
+  // "One bottle away": recipes short of exactly one buyable ingredient, grouped
+  // by that ingredient and ranked by how many drinks it would unlock.
+  const oneAway = useMemo(() => {
+    const groups = new Map<string, RecipeWithIngredients[]>();
+    for (const recipe of recipes ?? []) {
+      const missing = missingIngredients(recipe, available);
+      const id = missing.length === 1 ? missing[0].ingredient_id : null;
+      if (!id) continue;
+      groups.set(id, [...(groups.get(id) ?? []), recipe]);
+    }
+    return [...groups.entries()]
+      .map(([ingredientId, list]) => ({
+        ingredientId,
+        name: index?.byId.get(ingredientId)?.name ?? null,
+        recipes: list,
+      }))
+      .filter((g): g is typeof g & { name: string } => Boolean(g.name))
+      .sort((a, b) => b.recipes.length - a.recipes.length || a.name.localeCompare(b.name))
+      .slice(0, ONE_AWAY_ROWS);
+  }, [recipes, available, index]);
+
+  // "New on the shelf": bottles added this week, with how much of the notebook
+  // they open up. Staples are everyday things, so only real bottles count.
+  const newBottles = useMemo(() => {
+    const since = Date.now() - NEW_BOTTLE_DAYS * 24 * 60 * 60 * 1000;
+    return (bottles ?? [])
+      .filter(
+        (b) =>
+          b.kind === 'bottle' &&
+          b.status === 'in_stock' &&
+          b.ingredient_id &&
+          new Date(b.created_at).getTime() >= since,
+      )
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, 2)
+      .map((b) => ({
+        bottle: b,
+        uses: (recipes ?? []).filter((r) =>
+          r.recipe_ingredients.some((line) => line.ingredient_id === b.ingredient_id),
+        ).length,
+      }));
+  }, [bottles, recipes]);
+
+  // Typing here lands on the Barkeep screen with the question already asked.
+  // An empty send just opens the screen.
+  const [ask, setAsk] = useState('');
+  function sendAsk() {
+    const q = ask.trim();
+    setAsk('');
+    if (q) router.push({ pathname: '/ask', params: { q, t: String(Date.now()) } });
+    else router.push('/ask');
+  }
+
   if (bottlesLoading || recipesLoading) return <Loading label="Setting up the bar…" />;
 
   const hasBottles = (bottles?.length ?? 0) > 0;
   const greeting = greetingForHour(new Date().getHours());
+  const cardWidth = width - spacing.gutter * 2 - CARD_PEEK;
 
   return (
     <Screen>
@@ -94,10 +162,19 @@ export default function HomeScreen() {
             <View style={styles.mastheadText}>
               <Display>{greeting}</Display>
               {hasBottles ? (
-                <Muted>
-                  {inStock.length} in stock · {makeable.length}{' '}
-                  {makeable.length === 1 ? 'cocktail' : 'cocktails'} within reach
-                </Muted>
+                <View style={styles.counts}>
+                  <CountLink
+                    label={`${inStock.length} in stock`}
+                    onPress={() => router.push('/bar')}
+                  />
+                  <Text style={styles.countDot}>·</Text>
+                  <CountLink
+                    label={`${makeable.length} within reach`}
+                    onPress={() =>
+                      router.push({ pathname: '/recipes', params: { filter: 'makeable' } })
+                    }
+                  />
+                </View>
               ) : (
                 <Muted>Let’s get your bar set up.</Muted>
               )}
@@ -113,64 +190,42 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          <OrnamentRule style={styles.ornament} />
-
-          <View style={styles.ask}>
-            <Flourish style={styles.askInvitation}>What are you in the mood for?</Flourish>
-            <Pressable
-              onPress={() => router.push('/ask')}
+          <View style={styles.askLine}>
+            <TextInput
+              value={ask}
+              onChangeText={setAsk}
+              placeholder="What are you in the mood for?"
+              placeholderTextColor={colors.cream}
+              selectionColor={colors.accent}
+              returnKeyType="send"
+              enablesReturnKeyAutomatically
+              blurOnSubmit
+              onSubmitEditing={sendAsk}
+              accessibilityLabel="Ask the barkeep for a cocktail"
+              style={[styles.askInput, ask ? styles.askInputFilled : null]}
+            />
+            <PressableScale
+              onPress={sendAsk}
               accessibilityRole="button"
-              accessibilityLabel="Describe a cocktail"
-              style={styles.askField}
+              accessibilityLabel={ask.trim() ? 'Send to the barkeep' : 'Open the barkeep'}
+              hitSlop={8}
             >
-              <Text style={styles.askPlaceholder} numberOfLines={1}>
-                Describe a drink — gin, floral, dry…
-              </Text>
               <LinearGradient
                 colors={gradients.brand}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={styles.askSubmit}
+                style={styles.askArrow}
               >
                 <MaterialCommunityIcons name="arrow-right" size={16} color={colors.bg} />
               </LinearGradient>
-            </Pressable>
-            <View style={styles.moodRow}>
-              {MOODS.map((mood) => (
-                <Chip
-                  key={mood.label}
-                  label={mood.label}
-                  onPress={() => router.push({ pathname: '/ask', params: { q: mood.prompt } })}
-                />
-              ))}
-            </View>
+            </PressableScale>
           </View>
 
           {hasBottles ? (
             <>
-              <View style={styles.ledger}>
-                <LedgerColumn
-                  value={inStock.length}
-                  label="In stock"
-                  href="/bar"
-                />
-                <View style={styles.ledgerRule} />
-                <LedgerColumn
-                  value={makeable.length}
-                  label="Makeable"
-                  href={{ pathname: '/recipes', params: { filter: 'makeable' } }}
-                />
-                <View style={styles.ledgerRule} />
-                <LedgerColumn
-                  value={emptyBottles.length}
-                  label="Empty"
-                  href={{ pathname: '/bar', params: { filter: 'out' } }}
-                />
-              </View>
-
               <View style={styles.section}>
                 <SectionHeader
-                  title="Makeable tonight"
+                  title="Tonight"
                   actionLabel="All recipes"
                   onAction={() => router.push('/recipes')}
                 />
@@ -180,12 +235,17 @@ export default function HomeScreen() {
                     data={picks}
                     keyExtractor={(item) => item.id}
                     showsHorizontalScrollIndicator={false}
-                    style={styles.carouselBleed}
-                    contentContainerStyle={styles.carousel}
+                    style={styles.deckBleed}
+                    contentContainerStyle={styles.deck}
+                    snapToInterval={cardWidth + CARD_GAP}
+                    snapToAlignment="start"
+                    decelerationRate="fast"
+                    disableIntervalMomentum
                     renderItem={({ item }) => (
                       <PickCard
                         recipe={item}
                         number={numbers.get(item.id)}
+                        width={cardWidth}
                         baseColor={colorForKind(
                           item.base_ingredient_id
                             ? index?.byId.get(item.base_ingredient_id)?.kind
@@ -207,26 +267,78 @@ export default function HomeScreen() {
                         ? 'Nothing in the notebook is makeable right now — check your staples, or ask for something new.'
                         : 'The notebook is empty. Ask for a cocktail built from what you have.'}
                     </Flourish>
-                    <Button label="Ask for a cocktail" size="sm" onPress={() => router.push('/ask')} />
+                    <Button label="Ask the barkeep" size="sm" onPress={() => router.push('/ask')} />
                   </View>
                 )}
               </View>
 
-              {emptyBottles.length > 0 ? (
+              {emptyBottles.length > 0 || newBottles.length > 0 ? (
+                <View style={styles.notes}>
+                  {emptyBottles.length > 0 ? (
+                    <NoteLine
+                      label="Out"
+                      text={emptyBottles.map((b) => b.name).join(', ')}
+                      action="Restock"
+                      accessibilityLabel={`${emptyBottles.length} out: ${emptyBottles
+                        .map((b) => b.name)
+                        .join(', ')}. Restock`}
+                      onPress={() => router.push({ pathname: '/bar', params: { filter: 'out' } })}
+                    />
+                  ) : null}
+                  {newBottles.map(({ bottle, uses }) => (
+                    <NoteLine
+                      key={bottle.id}
+                      label="New"
+                      text={
+                        uses > 0
+                          ? `${bottle.name} — ${uses} ${uses === 1 ? 'recipe uses' : 'recipes use'} it`
+                          : `${bottle.name} — nothing in the notebook uses it yet`
+                      }
+                      action={uses > 0 ? 'See them' : 'Ask'}
+                      accessibilityLabel={
+                        uses > 0
+                          ? `New: ${bottle.name}. ${uses} recipes use it. See them`
+                          : `New: ${bottle.name}. Ask the barkeep for something with it`
+                      }
+                      onPress={() =>
+                        uses > 0
+                          ? router.push({
+                              pathname: '/recipes',
+                              params: {
+                                mode: 'uses',
+                                ingredient: bottle.ingredient_id as string,
+                                t: String(Date.now()),
+                              },
+                            })
+                          : router.push({
+                              pathname: '/ask',
+                              params: { q: `Something that uses my ${bottle.name}`, t: String(Date.now()) },
+                            })
+                      }
+                    />
+                  ))}
+                </View>
+              ) : null}
+
+              {oneAway.length > 0 ? (
                 <View style={styles.section}>
-                  <SectionHeader
-                    title="Empty"
-                    actionLabel="Open bar"
-                    onAction={() => router.push({ pathname: '/bar', params: { filter: 'out' } })}
-                  />
+                  <SectionHeader title="One bottle away" />
                   <View>
-                    {emptyBottles.slice(0, 3).map((bottle, i) => (
-                      <EmptyRow
-                        key={bottle.id}
-                        bottle={bottle}
+                    {oneAway.map((group, i) => (
+                      <OneAwayRow
+                        key={group.ingredientId}
+                        name={group.name}
+                        recipes={group.recipes}
                         first={i === 0}
                         onPress={() =>
-                          router.push({ pathname: '/bottle/[id]', params: { id: bottle.id } })
+                          router.push({
+                            pathname: '/recipes',
+                            params: {
+                              mode: 'almost',
+                              ingredient: group.ingredientId,
+                              t: String(Date.now()),
+                            },
+                          })
                         }
                       />
                     ))}
@@ -248,54 +360,100 @@ export default function HomeScreen() {
               </View>
             </View>
           )}
-
-          <View style={styles.section}>
-            <SectionHeader title="Bar keeping" />
-            <View>
-              <ShortcutRow first label="Scan a bottle" onPress={() => router.push('/scan')} />
-              <ShortcutRow label="Add a bottle by hand" onPress={() => router.push('/bottle/new')} />
-              <ShortcutRow label="Write a recipe" onPress={() => router.push('/recipe/new')} />
-              <ShortcutRow label="Everyday staples" onPress={() => router.push('/staples')} />
-            </View>
-          </View>
         </Reveal>
       </ScrollView>
     </Screen>
   );
 }
 
-function LedgerColumn({ value, label, href }: { value: number; label: string; href: Href }) {
+/** A one-line shelf note: bold label, muted text, small action on the right. */
+function NoteLine({
+  label,
+  text,
+  action,
+  accessibilityLabel,
+  onPress,
+}: {
+  label: string;
+  text: string;
+  action: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const router = useRouter();
   return (
     <PressableScale
-      onPress={() => router.push(href)}
+      onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${label}: ${value}`}
-      style={styles.ledgerColumn}
+      accessibilityLabel={accessibilityLabel}
+      style={styles.noteLine}
     >
-      <Text style={styles.ledgerValue}>{value}</Text>
-      <Text
-        style={styles.ledgerLabel}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.85}
-      >
-        {label}
+      <Text style={styles.noteText} numberOfLines={1}>
+        <Text style={styles.noteLabel}>{label} · </Text>
+        {text}
       </Text>
+      <Text style={styles.noteAction}>{action}</Text>
+      <MaterialCommunityIcons name="chevron-right" size={16} color={colors.text} />
     </PressableScale>
+  );
+}
+
+function OneAwayRow({
+  name,
+  recipes,
+  first,
+  onPress,
+}: {
+  name: string;
+  recipes: RecipeWithIngredients[];
+  first: boolean;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const titles = recipes.map((r) => r.title);
+  const shown = titles.slice(0, 2).join(', ');
+  const rest = titles.length - 2;
+  const unlocks = rest > 0 ? `${shown} +${rest}` : shown;
+  return (
+    <PressableScale
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${name} unlocks ${titles.length} ${titles.length === 1 ? 'recipe' : 'recipes'}: ${titles.join(', ')}`}
+      style={[styles.oneAwayRow, !first && styles.rowDivider]}
+    >
+      <Text style={styles.oneAwayName} numberOfLines={1}>
+        {name}
+      </Text>
+      <Text style={styles.oneAwayUnlocks} numberOfLines={1}>
+        {unlocks}
+      </Text>
+      <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textFaint} />
+    </PressableScale>
+  );
+}
+
+function CountLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <Pressable onPress={onPress} hitSlop={6} accessibilityRole="button" accessibilityLabel={label}>
+      <Text style={styles.count}>{label}</Text>
+    </Pressable>
   );
 }
 
 function PickCard({
   recipe,
   number,
+  width,
   baseColor,
   ingredientName,
   onPress,
 }: {
   recipe: RecipeWithIngredients;
   number: number | undefined;
+  width: number;
   baseColor: string;
   ingredientName: (id: string | null, freeText: string | null) => string | null;
   onPress: () => void;
@@ -306,13 +464,14 @@ function PickCard({
     .filter((line) => !line.is_garnish)
     .map((line) => ingredientName(line.ingredient_id, line.free_text))
     .filter((name): name is string => Boolean(name));
+  const specs = [recipe.method, recipe.glass].filter(Boolean).join(' · ');
 
   return (
     <PressableScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={recipe.title}
-      style={styles.pickCard}
+      style={[styles.pickCard, { width }]}
     >
       <View style={styles.pickHeader}>
         {number !== undefined ? <Flourish style={styles.pickNumber}>No. {number}</Flourish> : null}
@@ -320,7 +479,9 @@ function PickCard({
           <MaterialCommunityIcons name="star" size={14} color={colors.cream} />
         ) : null}
       </View>
-      <Heading numberOfLines={2}>{recipe.title}</Heading>
+      <Title numberOfLines={2} style={styles.pickTitle}>
+        {recipe.title}
+      </Title>
       {lineNames.length > 0 ? (
         <Muted numberOfLines={2} style={styles.pickIngredients}>
           {lineNames.join(' · ')}
@@ -329,58 +490,9 @@ function PickCard({
       <View style={styles.pickFooter}>
         <View style={[styles.pickDot, { backgroundColor: baseColor }]} />
         <Muted style={styles.pickSpecs} numberOfLines={1}>
-          {[recipe.method, recipe.glass].filter(Boolean).join(' · ') || 'Ready to pour'}
+          {specs || 'Ready to pour'}
         </Muted>
       </View>
-    </PressableScale>
-  );
-}
-
-function EmptyRow({
-  bottle,
-  first,
-  onPress,
-}: {
-  bottle: Bottle;
-  first: boolean;
-  onPress: () => void;
-}) {
-  const styles = useThemedStyles(makeStyles);
-  return (
-    <PressableScale
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${bottle.name}, empty`}
-      style={[styles.emptyRow, !first && styles.rowDivider]}
-    >
-      <Body style={styles.emptyName} numberOfLines={1}>
-        {bottle.name}
-      </Body>
-      <Text style={styles.emptyLabel}>Out</Text>
-    </PressableScale>
-  );
-}
-
-function ShortcutRow({
-  label,
-  onPress,
-  first = false,
-}: {
-  label: string;
-  onPress: () => void;
-  first?: boolean;
-}) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(makeStyles);
-  return (
-    <PressableScale
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={[styles.shortcutRow, !first && styles.rowDivider]}
-    >
-      <Body style={styles.shortcutLabel}>{label}</Body>
-      <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textFaint} />
     </PressableScale>
   );
 }
@@ -401,76 +513,53 @@ const makeStyles = ({ colors }: Theme) => StyleSheet.create({
     flex: 1,
     gap: spacing.xs,
   },
-  settings: {
-    paddingTop: spacing.sm,
-  },
-  ornament: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-
-  ask: {
-    gap: spacing.md,
-  },
-  askInvitation: {
-    fontSize: 19,
-    lineHeight: 26,
-  },
-  askField: {
+  counts: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+    flexWrap: 'wrap',
   },
-  askPlaceholder: {
-    flex: 1,
+  count: {
+    ...typography.body,
+    color: colors.textMuted,
+  },
+  countDot: {
     ...typography.body,
     color: colors.textFaint,
   },
-  askSubmit: {
+  settings: {
+    paddingTop: spacing.sm,
+  },
+
+  askLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.xl,
+    paddingVertical: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  // The empty field speaks in the flourish voice; once you type, the text
+  // stands upright so it reads as yours rather than the app's.
+  askInput: {
+    flex: 1,
+    ...typography.flourish,
+    fontSize: 18,
+    lineHeight: 24,
+    paddingVertical: 0,
+    color: colors.text,
+  },
+  askInputFilled: {
+    fontFamily: 'Fraunces_400Regular',
+  },
+  askArrow: {
     width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  moodRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-
-  ledger: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    marginTop: spacing.section,
-  },
-  ledgerColumn: {
-    flex: 1,
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.xs,
-  },
-  ledgerRule: {
-    width: StyleSheet.hairlineWidth,
-    marginHorizontal: spacing.md,
-    backgroundColor: colors.border,
-  },
-  ledgerValue: {
-    ...typography.statNumeral,
-    color: colors.cream,
-    fontVariant: ['tabular-nums'],
-  },
-  ledgerLabel: {
-    ...typography.overline,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textAlign: 'center',
-    color: colors.textFaint,
   },
 
   section: {
@@ -478,19 +567,19 @@ const makeStyles = ({ colors }: Theme) => StyleSheet.create({
     gap: spacing.lg,
   },
 
-  carouselBleed: {
+  deckBleed: {
     marginHorizontal: -spacing.gutter,
   },
-  carousel: {
-    gap: spacing.md,
+  deck: {
+    gap: CARD_GAP,
     paddingHorizontal: spacing.gutter,
   },
   pickCard: {
-    width: 232,
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
+    borderRadius: 18,
+    padding: spacing.xl,
     gap: spacing.sm,
+    minHeight: 172,
   },
   pickHeader: {
     flexDirection: 'row',
@@ -501,15 +590,19 @@ const makeStyles = ({ colors }: Theme) => StyleSheet.create({
     fontSize: 16,
     color: colors.cream,
   },
+  pickTitle: {
+    marginTop: spacing.xs,
+  },
   pickIngredients: {
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 18,
   },
   pickFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.xs,
+    marginTop: 'auto',
+    paddingTop: spacing.sm,
   },
   pickDot: {
     width: 6,
@@ -529,34 +622,54 @@ const makeStyles = ({ colors }: Theme) => StyleSheet.create({
     color: colors.textMuted,
   },
 
+  notes: {
+    marginTop: spacing.section,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderSubtle,
+  },
+  noteLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+  },
+  noteText: {
+    flex: 1,
+    ...typography.small,
+    color: colors.textMuted,
+  },
+  noteLabel: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  noteAction: {
+    ...typography.small,
+    fontWeight: '600',
+    color: colors.text,
+  },
+
   rowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.borderSubtle,
   },
-  emptyRow: {
+  oneAwayRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.lg,
+    gap: spacing.md,
     paddingVertical: spacing.md,
   },
-  emptyName: {
-    flex: 1,
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  emptyLabel: {
+  oneAwayName: {
     ...typography.small,
-    color: colors.textFaint,
-  },
-
-  shortcutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.lg - 2,
-  },
-  shortcutLabel: {
     fontWeight: '600',
+    color: colors.text,
+    flexShrink: 0,
+    maxWidth: '45%',
+  },
+  oneAwayUnlocks: {
+    flex: 1,
+    ...typography.small,
+    color: colors.textMuted,
+    textAlign: 'right',
   },
 
   welcome: {

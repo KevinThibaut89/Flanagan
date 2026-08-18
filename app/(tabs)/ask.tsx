@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button } from '../../src/components/Button';
@@ -36,19 +36,37 @@ import { useTheme, useThemedStyles } from '../../src/providers/theme';
 import { spacing, typography, type Theme } from '../../src/theme';
 
 const EXAMPLES = [
-  'A gin-based dry cocktail with floral notes',
   'Something bitter and stirred',
+  'Something fresh and citrusy',
+  'Short, strong and spirit-forward',
+  'A gin-based dry cocktail with floral notes',
   'Refreshing, long, not too strong',
   'Use up my rum',
+  'Surprise me with something I would not think of',
 ];
 
 export default function AskScreen() {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
+  const navigation = useNavigation();
   const [query, setQuery] = useState('');
 
   const suggest = useSuggestCocktails();
+  const lastPrefill = useRef<string | null>(null);
+
+  // Tapping the Barkeep tab while already on it wipes the slate: the query,
+  // the last answer and any error, so the next ask starts clean.
+  useEffect(() => {
+    return navigation.addListener('tabPress' as never, () => {
+      if (!navigation.isFocused()) return;
+      setQuery('');
+      suggest.reset();
+    });
+    // `suggest.reset` is a stable handle from react-query.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation]);
+
   const available = useAvailableIngredientIds();
   const { data: bottles } = useBottles();
 
@@ -64,17 +82,18 @@ export default function AskScreen() {
     suggest.mutate(trimmed);
   }
 
-  // Home's mood chips land here as /ask?q=…; run the prompt straight away.
-  const { q } = useLocalSearchParams<{ q?: string }>();
-  const lastPrefill = useRef<string | null>(null);
+  // Home's ask line lands here as /ask?q=…&t=…; run the prompt straight away.
+  // `t` is a send stamp so the same words sent twice still run twice.
+  const { q, t } = useLocalSearchParams<{ q?: string; t?: string }>();
+  const prefillKey = typeof q === 'string' && q.trim() ? `${t ?? ''}:${q}` : null;
   useEffect(() => {
-    if (typeof q === 'string' && q.trim() && q !== lastPrefill.current) {
-      lastPrefill.current = q;
-      ask(q);
+    if (prefillKey && prefillKey !== lastPrefill.current) {
+      lastPrefill.current = prefillKey;
+      ask(q as string);
     }
     // `ask` closes over stable mutation/setState handles only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }, [prefillKey]);
 
   const result = suggest.data;
 
@@ -86,8 +105,8 @@ export default function AskScreen() {
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <Label>Ask Flanagan</Label>
-            <Title>What do you feel like?</Title>
+            <Label>Barkeep</Label>
+            <Title>What are you in the mood for?</Title>
             <Muted>
               Answers come only from the {inStockCount}{' '}
               {inStockCount === 1 ? 'thing' : 'things'} you have in stock.

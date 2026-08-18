@@ -18,8 +18,10 @@ import {
   Title,
 } from '../../src/components/ui';
 import { useAvailableIngredientIds } from '../../src/data/bottles';
+import { useIngredientIndex } from '../../src/data/ingredients';
 import {
   canMake,
+  missingIngredients,
   recipeNumbers,
   useDeleteRecipe,
   useRecipes,
@@ -38,6 +40,13 @@ const FILTERS: Array<{ key: Filter; label: string }> = [
   { key: 'suggested', label: 'Suggested' },
 ];
 
+/**
+ * An ingredient-scoped view Home links into: `uses` = every recipe that calls
+ * for the ingredient; `almost` = recipes that need it and nothing else. It
+ * shows as a temporary leading chip and clears when any regular chip is tapped.
+ */
+type Focus = { mode: 'uses' | 'almost'; ingredientId: string };
+
 export default function RecipesScreen() {
   const { colors } = useTheme();
   const router = useRouter();
@@ -46,6 +55,8 @@ export default function RecipesScreen() {
   const deleteRecipe = useDeleteRecipe();
 
   const [filter, setFilter] = useState<Filter>('all');
+  const [focus, setFocus] = useState<Focus | null>(null);
+  const { index } = useIngredientIndex();
 
   // Swipe-to-delete: one card peeked open at a time, scrolling paused mid-drag,
   // and the same confirmation sheet as the recipe screen before anything goes.
@@ -63,18 +74,44 @@ export default function RecipesScreen() {
     deleteRecipe.mutate(pendingDelete.id, { onSettled: cancelDelete });
   };
 
-  // Home deep-links into a pre-filtered view, e.g. /recipes?filter=makeable.
-  const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
+  // Home deep-links into a pre-filtered view, e.g. /recipes?filter=makeable
+  // or /recipes?mode=almost&ingredient=<id>&t=<stamp>.
+  const {
+    filter: filterParam,
+    mode,
+    ingredient,
+    t,
+  } = useLocalSearchParams<{ filter?: string; mode?: string; ingredient?: string; t?: string }>();
   useEffect(() => {
     if (filterParam && FILTERS.some((f) => f.key === filterParam)) {
       setFilter(filterParam as Filter);
     }
   }, [filterParam]);
+  useEffect(() => {
+    if ((mode === 'uses' || mode === 'almost') && typeof ingredient === 'string' && ingredient) {
+      setFocus({ mode, ingredientId: ingredient });
+      setFilter('all');
+    }
+  }, [mode, ingredient, t]);
+
+  const pickFilter = (next: Filter) => {
+    setFocus(null);
+    setFilter(next);
+  };
 
   const numbers = useMemo(() => recipeNumbers(recipes ?? []), [recipes]);
 
   const visible = useMemo(() => {
     if (!recipes) return [];
+    if (focus) {
+      return recipes.filter((recipe) => {
+        if (focus.mode === 'uses') {
+          return recipe.recipe_ingredients.some((line) => line.ingredient_id === focus.ingredientId);
+        }
+        const missing = missingIngredients(recipe, available);
+        return missing.length === 1 && missing[0].ingredient_id === focus.ingredientId;
+      });
+    }
     return recipes.filter((recipe) => {
       switch (filter) {
         case 'makeable':
@@ -89,7 +126,13 @@ export default function RecipesScreen() {
           return true;
       }
     });
-  }, [recipes, filter, available]);
+  }, [recipes, filter, focus, available]);
+
+  const focusLabel = useMemo(() => {
+    if (!focus) return null;
+    const name = index?.byId.get(focus.ingredientId)?.name ?? 'this ingredient';
+    return focus.mode === 'uses' ? `With ${name}` : `One away: ${name}`;
+  }, [focus, index]);
 
   const makeableCount = useMemo(
     () => (recipes ?? []).filter((recipe) => canMake(recipe, available)).length,
@@ -133,11 +176,16 @@ export default function RecipesScreen() {
           showsHorizontalScrollIndicator={false}
           style={styles.filterBleed}
           contentContainerStyle={styles.filterRow}
+          ListHeaderComponent={
+            focus && focusLabel ? (
+              <Chip label={focusLabel} active onPress={() => setFocus(null)} />
+            ) : null
+          }
           renderItem={({ item }) => (
             <Chip
               label={item.label}
-              active={filter === item.key}
-              onPress={() => setFilter(item.key)}
+              active={!focus && filter === item.key}
+              onPress={() => pickFilter(item.key)}
             />
           )}
         />

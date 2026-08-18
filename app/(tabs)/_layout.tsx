@@ -1,33 +1,21 @@
-import type { ComponentProps } from 'react';
 import { Tabs } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { StyleSheet, type ColorValue } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
+import { TabBar } from '../../src/components/TabBar';
 import { useTheme } from '../../src/providers/theme';
 
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-function icon(name: IconName) {
-  return ({ color, size }: { color: ColorValue; size: number }) => (
-    <MaterialCommunityIcons name={name} color={color as string} size={size} />
-  );
-}
-
+/**
+ * Titles and icons live in TabBar's TAB_META; the route order here is the
+ * bar's order (Home · Bar · Barkeep · Recipes), with Scan appended by the bar
+ * itself since it opens a modal rather than a tab.
+ */
 export default function TabsLayout() {
   const { colors } = useTheme();
   return (
     <Tabs
+      tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textFaint,
-        tabBarStyle: {
-          backgroundColor: colors.bg,
-          borderTopColor: colors.borderSubtle,
-          borderTopWidth: StyleSheet.hairlineWidth,
-        },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: 0.4 },
         sceneStyle: { backgroundColor: colors.bg },
       }}
       screenListeners={{
@@ -36,22 +24,10 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{ title: 'Home', tabBarIcon: icon('home-variant-outline') }}
-      />
-      <Tabs.Screen
-        name="bar"
-        options={{ title: 'Bar', tabBarIcon: icon('bottle-wine-outline') }}
-      />
-      <Tabs.Screen
-        name="ask"
-        options={{ title: 'Ask', tabBarIcon: icon('creation') }}
-      />
-      <Tabs.Screen
-        name="recipes"
-        options={{ title: 'Recipes', tabBarIcon: icon('notebook-outline') }}
-      />
+      <Tabs.Screen name="index" options={{ title: 'Home' }} />
+      <Tabs.Screen name="bar" options={{ title: 'Bar' }} />
+      <Tabs.Screen name="ask" options={{ title: 'Barkeep' }} />
+      <Tabs.Screen name="recipes" options={{ title: 'Recipes' }} />
     </Tabs>
   );
 }
