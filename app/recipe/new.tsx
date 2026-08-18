@@ -204,8 +204,8 @@ export default function RecipeEditorScreen() {
               <RecipeLineEditor
                 key={line.key}
                 line={line}
-                onChange={(next) =>
-                  setLines((current) => current.map((row, j) => (j === i ? next : row)))
+                onChange={(update) =>
+                  setLines((current) => current.map((row, j) => (j === i ? update(row) : row)))
                 }
                 onRemove={() => setLines((current) => current.filter((_, j) => j !== i))}
               />

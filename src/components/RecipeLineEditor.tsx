@@ -48,17 +48,26 @@ const UNIT_LABELS: Partial<Record<MeasureUnit, string>> = {
   top: 'top up',
 };
 
+/** A functional update, so successive edits compose instead of overwriting. */
+export type RecipeLineUpdate = (current: RecipeLineDraft) => RecipeLineDraft;
+
 export function RecipeLineEditor({
   line,
   onChange,
   onRemove,
 }: {
   line: RecipeLineDraft;
-  onChange: (line: RecipeLineDraft) => void;
+  /**
+   * Receives an updater rather than a finished line. The ingredient picker
+   * fires two changes for one tap (`onChange(id)` then `onFreeText('')`), and
+   * building each from the `line` prop would let the second, still holding the
+   * old ingredient id, wipe out the first — the row would never fill in.
+   */
+  onChange: (update: RecipeLineUpdate) => void;
   onRemove: () => void;
 }) {
   function set<K extends keyof RecipeLineDraft>(key: K, value: RecipeLineDraft[K]) {
-    onChange({ ...line, [key]: value });
+    onChange((current) => ({ ...current, [key]: value }));
   }
 
   return (

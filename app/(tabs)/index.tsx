@@ -272,7 +272,14 @@ function LedgerColumn({ value, label, href }: { value: number; label: string; hr
       style={styles.ledgerColumn}
     >
       <Text style={styles.ledgerValue}>{value}</Text>
-      <Text style={styles.ledgerLabel}>{label}</Text>
+      <Text
+        style={styles.ledgerLabel}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+      >
+        {label}
+      </Text>
     </PressableScale>
   );
 }
@@ -441,11 +448,13 @@ const styles = StyleSheet.create({
   ledgerColumn: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
+    gap: spacing.xs,
     paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
   },
   ledgerRule: {
     width: StyleSheet.hairlineWidth,
+    marginHorizontal: spacing.md,
     backgroundColor: colors.border,
   },
   ledgerValue: {
@@ -455,6 +464,9 @@ const styles = StyleSheet.create({
   },
   ledgerLabel: {
     ...typography.overline,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textAlign: 'center',
     color: colors.textFaint,
   },
 
