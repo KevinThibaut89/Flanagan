@@ -285,6 +285,7 @@ export type Database = {
           glass: string | null
           ice: Database["public"]["Enums"]["recipe_ice"] | null
           id: string
+          image_url: string | null
           instructions: string[]
           is_favorite: boolean
           method: Database["public"]["Enums"]["recipe_method"] | null
@@ -306,6 +307,7 @@ export type Database = {
           glass?: string | null
           ice?: Database["public"]["Enums"]["recipe_ice"] | null
           id?: string
+          image_url?: string | null
           instructions?: string[]
           is_favorite?: boolean
           method?: Database["public"]["Enums"]["recipe_method"] | null
@@ -327,6 +329,7 @@ export type Database = {
           glass?: string | null
           ice?: Database["public"]["Enums"]["recipe_ice"] | null
           id?: string
+          image_url?: string | null
           instructions?: string[]
           is_favorite?: boolean
           method?: Database["public"]["Enums"]["recipe_method"] | null

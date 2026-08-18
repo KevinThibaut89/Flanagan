@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useColorForKind } from './CategoryPill';
@@ -50,8 +51,21 @@ export function RecipeCard({
         ) : null}
       </View>
 
-      <Heading numberOfLines={2}>{recipe.title}</Heading>
-      {lineNames.length > 0 ? <Muted numberOfLines={2}>{lineNames.join(' · ')}</Muted> : null}
+      <View style={styles.titleRow}>
+        <View style={styles.titleBlock}>
+          <Heading numberOfLines={2}>{recipe.title}</Heading>
+          {lineNames.length > 0 ? <Muted numberOfLines={2}>{lineNames.join(' · ')}</Muted> : null}
+        </View>
+        {recipe.image_url ? (
+          <Image
+            source={{ uri: recipe.image_url }}
+            style={styles.thumbnail}
+            contentFit="cover"
+            transition={150}
+            accessibilityIgnoresInvertColors
+          />
+        ) : null}
+      </View>
 
       <View style={styles.footer}>
         {makeable ? (
@@ -90,6 +104,21 @@ const makeStyles = ({ colors }: Theme) =>
   },
   number: {
     fontSize: 16,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  titleBlock: {
+    flex: 1,
+    gap: spacing.sm,
+  },
+  thumbnail: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceRaised,
   },
   footer: {
     flexDirection: 'row',

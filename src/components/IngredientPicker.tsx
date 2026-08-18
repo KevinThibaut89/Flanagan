@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { labelForKind, useColorForKind } from './CategoryPill';
+import { SearchField } from './SearchField';
 import { Body, Label, Muted, Screen } from './ui';
 import { useBottles } from '../data/bottles';
 import { useIngredientIndex, useIngredients } from '../data/ingredients';
@@ -192,20 +193,14 @@ export function IngredientSearchModal({
           modal goes full-screen), keeps the search field off the status bar. */}
       <Screen edges={['top']}>
         <View style={styles.modalHeader}>
-          <View style={styles.searchWrap}>
-            <MaterialCommunityIcons name="magnify" size={18} color={colors.textFaint} />
-            <TextInput
-              value={term}
-              onChangeText={setTerm}
-              placeholder="Search ingredients"
-              placeholderTextColor={colors.textFaint}
-              selectionColor={colors.accent}
-              autoFocus
-              autoCorrect={false}
-              autoCapitalize="none"
-              style={styles.searchInput}
-            />
-          </View>
+          <SearchField
+            value={term}
+            onChangeText={setTerm}
+            placeholder="Search ingredients"
+            autoFocus
+            autoCapitalize="none"
+            containerStyle={styles.search}
+          />
           <Pressable onPress={onClose} hitSlop={8} accessibilityLabel="Cancel">
             <Body style={styles.cancel}>Cancel</Body>
           </Pressable>
@@ -315,22 +310,9 @@ const makeStyles = ({ colors }: Theme) =>
     padding: spacing.gutter,
     paddingVertical: spacing.lg,
   },
-  searchWrap: {
+  search: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
     paddingHorizontal: spacing.md,
-    height: 46,
-  },
-  searchInput: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 15,
   },
   cancel: {
     color: colors.cream,

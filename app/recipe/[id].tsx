@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { Button } from '../../src/components/Button';
 import { ConfirmSheet } from '../../src/components/ConfirmSheet';
 import { RecipeIngredientList } from '../../src/components/RecipeIngredientList';
+import { RecipePhoto } from '../../src/components/RecipePhoto';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import {
   Body,
@@ -31,27 +32,9 @@ import {
   useToggleFavorite,
 } from '../../src/data/recipes';
 import { useIngredientIndex } from '../../src/data/ingredients';
+import { ICE_LABELS, METHOD_LABELS } from '../../src/lib/recipeLabels';
 import { useTheme, useThemedStyles } from '../../src/providers/theme';
 import { spacing, typography, type Theme } from '../../src/theme';
-import type { RecipeIce, RecipeMethod } from '../../src/types/database';
-
-const METHOD_LABELS: Record<RecipeMethod, string> = {
-  shake: 'Shake',
-  stir: 'Stir',
-  build: 'Build in glass',
-  blend: 'Blend',
-  throw: 'Throw',
-  swizzle: 'Swizzle',
-  muddle: 'Muddle',
-};
-
-const ICE_LABELS: Record<RecipeIce, string> = {
-  none: 'No ice',
-  cubed: 'Cubed ice',
-  crushed: 'Crushed ice',
-  large_cube: 'One large cube',
-  block: 'Block ice',
-};
 
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -138,6 +121,8 @@ export default function RecipeDetailScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.content}>
+        <RecipePhoto recipeId={id} imageUrl={recipe.image_url} />
+
         <Card style={styles.verdict}>
           <MaterialCommunityIcons
             name={makeable ? 'check-circle-outline' : 'cart-outline'}
@@ -221,7 +206,7 @@ export default function RecipeDetailScreen() {
         busy={deleteRecipe.isPending}
         onCancel={() => setConfirmingDelete(false)}
         onConfirm={() =>
-          deleteRecipe.mutate(id, {
+          deleteRecipe.mutate(recipe, {
             onSuccess: () => {
               setConfirmingDelete(false);
               if (router.canGoBack()) router.back();

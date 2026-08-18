@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../providers/auth';
 import type { Database, Recipe, RecipeIngredient } from '../types/database';
 import { queryKeys } from './keys';
+import { removeStoredPhoto } from './recipePhotos';
 
 export interface RecipeWithIngredients extends Recipe {
   recipe_ingredients: RecipeIngredient[];
@@ -219,10 +220,12 @@ export function useDeleteRecipe() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, image_url }: Pick<Recipe, 'id' | 'image_url'>) => {
       // recipe_ingredients cascade on delete.
       const { error } = await supabase.from('recipes').delete().eq('id', id);
       if (error) throw error;
+      // The photo lives in storage, which nothing cascades to.
+      await removeStoredPhoto(image_url);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.recipes(user?.id) });

@@ -12,8 +12,9 @@ A personal mixology app: your bottles, and what they can make tonight.
   whether a drink is actually possible.
 - **Ask** — describe what you feel like ("a gin-based dry cocktail with floral
   notes") and get cocktails you can pour from what is in stock.
-- **Recipes** — suggestions you save and recipes you write yourself, in one
-  shared format, filterable by what's makeable right now.
+- **Recipes** — suggestions you save and recipes you write yourself — typed
+  in, or scanned off a book page, a menu or a screenshot — in one shared
+  format, filterable by what's makeable right now.
 
 Expo (iOS + Android) · Supabase (Postgres, auth, edge functions) · OpenAI.
 
@@ -25,10 +26,12 @@ Expo (iOS + Android) · Supabase (Postgres, auth, edge functions) · OpenAI.
 Expo app
   ├── supabase-js ─────────────►  Postgres (row-level security, per user)
   │                               Auth (email six-digit code)
+  │                               Storage (`recipe-photos`, per-user folders)
   └── functions.invoke() ──────►  Edge functions (Deno)
                                    ├── lookup-barcode    → Open Food Facts
                                    ├── classify-bottle   → OpenAI
                                    ├── identify-bottles  → OpenAI (vision)
+                                   ├── read-recipe       → OpenAI (vision)
                                    └── suggest-cocktails → OpenAI
                                         (prompt + model from `ai_prompts`)
 ```
@@ -139,6 +142,7 @@ supabase db push                      # all migrations, in order
 supabase functions deploy lookup-barcode
 supabase functions deploy classify-bottle
 supabase functions deploy identify-bottles
+supabase functions deploy read-recipe
 supabase functions deploy suggest-cocktails
 ```
 
@@ -167,6 +171,23 @@ supabase functions deploy suggest-cocktails
   shelf start unticked, "counts as" is a tap away from being changed, and only
   the ticked rows are inserted — in one batch, when you say so. The photo is not
   stored anywhere.
+- **Recipe photos are the one thing in Storage.** A saved recipe can carry a
+  picture of the finished drink, taken there or picked from the library. Objects
+  live in the public `recipe-photos` bucket at `<user>/<recipe>/<stamp>.jpg`;
+  policies lock writes to the owner's folder and the recipe row keeps the public
+  URL (`recipes.image_url`). Replacing or removing a photo, or deleting the
+  recipe, removes the old object; a failed cleanup is swallowed rather than
+  block the action asked for.
+- **A scanned recipe is a prefill, not an import.** *Write a recipe* opens
+  with a *Scan a recipe* card: photograph a page (or pick a screenshot) and
+  `read-recipe` reads it — title, lines with quantities and units, method,
+  ice, glass, garnish, steps, attribution — straight into the editor's fields,
+  pinning each ingredient line to a vocabulary slug under the same rules as
+  the bottle classifiers, and leaving anything it cannot place as free text in
+  the printed wording. Units are kept as printed (an ounce recipe stays in
+  ounces), nothing is composed that is not on the page, and a page with
+  several recipes offers a choice. The editor is the review step: nothing is
+  saved until the form is. The photo is not stored anywhere.
 - **The barcode catalogue is shared.** Resolving a barcode once — from Open Food
   Facts or by filling the form in yourself — writes a `products` row, so the next
   scan of that bottle is instant. Open Food Facts coverage of spirits is patchy;

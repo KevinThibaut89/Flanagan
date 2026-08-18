@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, Keyboard, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -7,6 +7,8 @@ import { Button } from '../../src/components/Button';
 import { Chip } from '../../src/components/Chip';
 import { ConfirmSheet } from '../../src/components/ConfirmSheet';
 import { RecipeCard } from '../../src/components/RecipeCard';
+import { RecipeFilterSheet } from '../../src/components/RecipeFilterSheet';
+import { SearchField } from '../../src/components/SearchField';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
 import {
   EmptyState,
@@ -19,6 +21,18 @@ import {
 } from '../../src/components/ui';
 import { useAvailableIngredientIds } from '../../src/data/bottles';
 import { useIngredientIndex } from '../../src/data/ingredients';
+import {
+  EMPTY_FACETS,
+  activeFacetCount,
+  matchesFacets,
+  matchesSearch,
+  recipeFacets,
+  recipeHaystack,
+  searchTerms,
+  sortRecipes,
+  type RecipeFacetSelection,
+  type RecipeSort,
+} from '../../src/data/recipeSearch';
 import {
   canMake,
   missingIngredients,
@@ -58,6 +72,13 @@ export default function RecipesScreen() {
   const [focus, setFocus] = useState<Focus | null>(null);
   const { index } = useIngredientIndex();
 
+  // Search and the facet sheet narrow whatever the chips have chosen. They
+  // compose with (rather than replace) the quick filter and focus.
+  const [query, setQuery] = useState('');
+  const [facets, setFacets] = useState<RecipeFacetSelection>(EMPTY_FACETS);
+  const [sort, setSort] = useState<RecipeSort>('newest');
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   // Swipe-to-delete: one card peeked open at a time, scrolling paused mid-drag,
   // and the same confirmation sheet as the recipe screen before anything goes.
   const [openId, setOpenId] = useState<string | null>(null);
@@ -71,7 +92,7 @@ export default function RecipesScreen() {
 
   const confirmDelete = () => {
     if (!pendingDelete) return;
-    deleteRecipe.mutate(pendingDelete.id, { onSettled: cancelDelete });
+    deleteRecipe.mutate(pendingDelete, { onSettled: cancelDelete });
   };
 
   // Home deep-links into a pre-filtered view, e.g. /recipes?filter=makeable
@@ -82,15 +103,21 @@ export default function RecipesScreen() {
     ingredient,
     t,
   } = useLocalSearchParams<{ filter?: string; mode?: string; ingredient?: string; t?: string }>();
+  // Either link should land on exactly the view Home promised, so any search
+  // or facet the user left behind is cleared.
   useEffect(() => {
     if (filterParam && FILTERS.some((f) => f.key === filterParam)) {
       setFilter(filterParam as Filter);
+      setQuery('');
+      setFacets(EMPTY_FACETS);
     }
   }, [filterParam]);
   useEffect(() => {
     if ((mode === 'uses' || mode === 'almost') && typeof ingredient === 'string' && ingredient) {
       setFocus({ mode, ingredientId: ingredient });
       setFilter('all');
+      setQuery('');
+      setFacets(EMPTY_FACETS);
     }
   }, [mode, ingredient, t]);
 
@@ -101,32 +128,60 @@ export default function RecipesScreen() {
 
   const numbers = useMemo(() => recipeNumbers(recipes ?? []), [recipes]);
 
+  // Searchable text per recipe, built once per library/index change rather
+  // than on every keystroke.
+  const haystacks = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const recipe of recipes ?? []) map.set(recipe.id, recipeHaystack(recipe, index));
+    return map;
+  }, [recipes, index]);
+  const terms = useMemo(() => searchTerms(query), [query]);
+  const facetOptions = useMemo(() => recipeFacets(recipes ?? [], index), [recipes, index]);
+  const facetCount = activeFacetCount(facets);
+
   const visible = useMemo(() => {
     if (!recipes) return [];
-    if (focus) {
-      return recipes.filter((recipe) => {
-        if (focus.mode === 'uses') {
-          return recipe.recipe_ingredients.some((line) => line.ingredient_id === focus.ingredientId);
-        }
-        const missing = missingIngredients(recipe, available);
-        return missing.length === 1 && missing[0].ingredient_id === focus.ingredientId;
-      });
-    }
-    return recipes.filter((recipe) => {
-      switch (filter) {
-        case 'makeable':
-          return canMake(recipe, available);
-        case 'favorites':
-          return recipe.is_favorite;
-        case 'mine':
-          return recipe.source !== 'ai';
-        case 'suggested':
-          return recipe.source === 'ai';
-        default:
-          return true;
-      }
-    });
-  }, [recipes, filter, focus, available]);
+    const scoped = focus
+      ? recipes.filter((recipe) => {
+          if (focus.mode === 'uses') {
+            return recipe.recipe_ingredients.some((line) => line.ingredient_id === focus.ingredientId);
+          }
+          const missing = missingIngredients(recipe, available);
+          return missing.length === 1 && missing[0].ingredient_id === focus.ingredientId;
+        })
+      : recipes.filter((recipe) => {
+          switch (filter) {
+            case 'makeable':
+              return canMake(recipe, available);
+            case 'favorites':
+              return recipe.is_favorite;
+            case 'mine':
+              return recipe.source !== 'ai';
+            case 'suggested':
+              return recipe.source === 'ai';
+            default:
+              return true;
+          }
+        });
+    const narrowed = scoped.filter(
+      (recipe) =>
+        matchesFacets(recipe, facets, index) && matchesSearch(haystacks.get(recipe.id) ?? '', terms),
+    );
+    return sortRecipes(narrowed, sort);
+  }, [recipes, filter, focus, available, facets, index, haystacks, terms, sort]);
+
+  const isNarrowed = terms.length > 0 || facetCount > 0 || focus !== null || filter !== 'all';
+
+  const openSheet = () => {
+    Keyboard.dismiss();
+    setOpenId(null);
+    setSheetOpen(true);
+  };
+
+  const changeQuery = (next: string) => {
+    setOpenId(null);
+    setQuery(next);
+  };
 
   const focusLabel = useMemo(() => {
     if (!focus) return null;
@@ -155,7 +210,9 @@ export default function RecipesScreen() {
           <View style={styles.headerText}>
             <Title>Recipes</Title>
             <Muted>
-              {recipes?.length ?? 0} saved · {makeableCount} you can make now
+              {isNarrowed
+                ? `${visible.length} of ${recipes?.length ?? 0} recipes`
+                : `${recipes?.length ?? 0} saved · ${makeableCount} you can make now`}
             </Muted>
           </View>
           <PressableScale
@@ -169,6 +226,13 @@ export default function RecipesScreen() {
           </PressableScale>
         </View>
 
+        <SearchField
+          value={query}
+          onChangeText={changeQuery}
+          placeholder="Search recipes"
+          returnKeyType="search"
+        />
+
         <FlatList
           horizontal
           data={FILTERS}
@@ -176,10 +240,20 @@ export default function RecipesScreen() {
           showsHorizontalScrollIndicator={false}
           style={styles.filterBleed}
           contentContainerStyle={styles.filterRow}
+          keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
-            focus && focusLabel ? (
-              <Chip label={focusLabel} active onPress={() => setFocus(null)} />
-            ) : null
+            <View style={styles.leadingChips}>
+              <Chip
+                label="Filters"
+                icon="filter-outline"
+                count={facetCount}
+                active={facetCount > 0 || sort !== 'newest'}
+                onPress={openSheet}
+              />
+              {focus && focusLabel ? (
+                <Chip label={focusLabel} active onPress={() => setFocus(null)} />
+              ) : null}
+            </View>
           }
           renderItem={({ item }) => (
             <Chip
@@ -198,6 +272,8 @@ export default function RecipesScreen() {
         onRefresh={refetch}
         scrollEnabled={!dragging}
         onScrollBeginDrag={() => setOpenId(null)}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={visible.length === 0 ? styles.emptyWrap : styles.listContent}
         ListEmptyComponent={
           recipes && recipes.length === 0 ? (
@@ -205,6 +281,20 @@ export default function RecipesScreen() {
               title="No recipes yet"
               message="Ask for a cocktail and save what you like, or write down one of your own. Both end up in the same format, side by side."
               action={<Button label="Ask for a cocktail" onPress={() => router.push('/ask')} />}
+            />
+          ) : terms.length > 0 ? (
+            <EmptyState
+              title={`Nothing matches “${query.trim()}”`}
+              message="Try fewer words, or search by an ingredient, glass or flavour."
+              action={<Button label="Clear search" variant="secondary" onPress={() => setQuery('')} />}
+            />
+          ) : facetCount > 0 ? (
+            <EmptyState
+              title="Nothing matches these filters"
+              message="Loosen one of them, or clear the lot and start again."
+              action={
+                <Button label="Clear filters" variant="secondary" onPress={() => setFacets(EMPTY_FACETS)} />
+              }
             />
           ) : (
             <EmptyState
@@ -240,6 +330,21 @@ export default function RecipesScreen() {
             </PressableScale>
           </SwipeableRow>
         )}
+      />
+
+      <RecipeFilterSheet
+        visible={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        facets={facetOptions}
+        selection={facets}
+        onChange={setFacets}
+        sort={sort}
+        onChangeSort={setSort}
+        resultCount={visible.length}
+        onClearAll={() => {
+          setFacets(EMPTY_FACETS);
+          setSort('newest');
+        }}
       />
 
       <ConfirmSheet
@@ -281,6 +386,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.gutter,
     paddingBottom: spacing.xs,
+  },
+  leadingChips: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
   listContent: {
     paddingHorizontal: spacing.gutter,

@@ -34,14 +34,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Flanagan uses the camera to scan bottle barcodes and photograph your shelf so it can add bottles to your bar.",
+          "cameraPermission": "Flanagan uses the camera to scan bottle barcodes, photograph your shelf so it can add bottles to your bar, snap a picture of a drink for a recipe, and read a recipe off a page.",
           "recordAudioAndroid": false
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Flanagan uses your photos so you can add the bottles in a shelf picture to your bar.",
+          "photosPermission": "Flanagan uses your photos so you can add the bottles in a shelf picture to your bar, attach a picture to a recipe, or read a recipe from a screenshot.",
           "cameraPermission": false,
           "microphonePermission": false
         }

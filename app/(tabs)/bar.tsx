@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -7,6 +7,7 @@ import { Button } from '../../src/components/Button';
 import { Chip } from '../../src/components/Chip';
 import { useColorForKind } from '../../src/components/CategoryPill';
 import { ConfirmSheet } from '../../src/components/ConfirmSheet';
+import { SearchField } from '../../src/components/SearchField';
 import { SwipeableRow, type SwipeSide } from '../../src/components/SwipeableRow';
 import {
   Body,
@@ -144,23 +145,7 @@ export default function BarScreen() {
           </View>
         </View>
 
-        <View style={styles.searchWrap}>
-          <MaterialCommunityIcons name="magnify" size={18} color={colors.textFaint} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search your bottles"
-            placeholderTextColor={colors.textFaint}
-            selectionColor={colors.accent}
-            autoCorrect={false}
-            style={styles.searchInput}
-          />
-          {search ? (
-            <Pressable onPress={() => setSearch('')} hitSlop={8} accessibilityLabel="Clear search">
-              <MaterialCommunityIcons name="close-circle" size={18} color={colors.textFaint} />
-            </Pressable>
-          ) : null}
-        </View>
+        <SearchField value={search} onChangeText={setSearch} placeholder="Search your bottles" />
 
         <FlatList
           horizontal
@@ -369,22 +354,6 @@ const makeStyles = ({ colors }: Theme) => StyleSheet.create({
   },
   headerIcon: {
     paddingVertical: spacing.xs,
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    paddingHorizontal: spacing.lg,
-    height: 46,
-  },
-  searchInput: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 15,
   },
   filterBleed: {
     marginHorizontal: -spacing.gutter,

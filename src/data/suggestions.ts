@@ -59,6 +59,7 @@ export function draftToPreview(draft: SuggestedRecipe, index: number): RecipeWit
     abv_estimate: draft.abv_estimate,
     servings: draft.servings,
     is_favorite: false,
+    image_url: null,
     ai_prompt: draft.ai_prompt ?? null,
     ai_model: draft.ai_model ?? null,
     created_at: now,

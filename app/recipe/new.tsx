@@ -12,10 +12,12 @@ import {
   newLine,
   type RecipeLineDraft,
 } from '../../src/components/RecipeLineEditor';
+import { ScanRecipe } from '../../src/components/ScanRecipe';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { TextField } from '../../src/components/TextField';
 import { Body, Label, Loading, Muted, PressableScale, Screen } from '../../src/components/ui';
 import { useIngredientIndex } from '../../src/data/ingredients';
+import type { ReadRecipe } from '../../src/data/readRecipe';
 import { useRecipe, useSaveRecipe, useUpdateRecipe } from '../../src/data/recipes';
 import { useTheme, useThemedStyles } from '../../src/providers/theme';
 import { spacing, typography, type Theme } from '../../src/theme';
@@ -39,9 +41,16 @@ const ICES: Array<{ value: RecipeIce; label: string }> = [
   { value: 'block', label: 'Block' },
 ];
 
+/** "0.75" rather than "0.75000000001"; the amount field only takes digits and a dot. */
+function formatAmount(amount: number): string {
+  return String(Number(amount.toFixed(2)));
+}
+
 /**
  * Writes a recipe into the same tables the AI path writes into — one format,
- * one editor, one save. Doubles as the edit screen via the `editId` param.
+ * one editor, one save. Doubles as the edit screen via the `editId` param, and
+ * as the review step for a scanned recipe: a photo of a page fills the same
+ * fields in, and saving is the same save.
  */
 export default function RecipeEditorScreen() {
   const router = useRouter();
@@ -65,6 +74,9 @@ export default function RecipeEditorScreen() {
   const [notes, setNotes] = useState('');
   const [tags, setTags] = useState('');
   const [baseIngredientId, setBaseIngredientId] = useState<string | null>(null);
+  // Not editable here — the form has no field for it — but a scanned batch
+  // recipe ("serves 6") should not quietly become a single serving.
+  const [servings, setServings] = useState(1);
   const [seeded, setSeeded] = useState(false);
   const [touched, setTouched] = useState(false);
 
@@ -82,6 +94,7 @@ export default function RecipeEditorScreen() {
     setNotes(existing.notes ?? '');
     setTags(existing.flavor_tags.join(', '));
     setBaseIngredientId(existing.base_ingredient_id);
+    setServings(existing.servings);
     setLines(
       existing.recipe_ingredients.map((row) =>
         newLine({
@@ -122,6 +135,49 @@ export default function RecipeEditorScreen() {
 
   const effectiveBase = baseIngredientId ?? suggestedBase;
 
+  /** Whether a scan would overwrite anything the user has typed. */
+  const hasContent =
+    Boolean(title.trim()) ||
+    rows.length > 0 ||
+    steps.some((step) => step.trim()) ||
+    Boolean(glass.trim() || garnish.trim() || notes.trim() || tags.trim());
+
+  /**
+   * Pours a scanned recipe into the form. Everything lands in the same fields
+   * the user would have typed into, so the review is just reading the form;
+   * the base spirit is left to be guessed from the lines like any other draft.
+   */
+  function applyRead(recipe: ReadRecipe) {
+    setTitle(recipe.title);
+    setLines(
+      recipe.ingredients.length > 0
+        ? recipe.ingredients.map((line) =>
+            newLine({
+              ingredientId: line.ingredient_id,
+              // Unmatched lines keep the printed wording as free text, so the
+              // user sees exactly what the page said and can pick a match.
+              freeText: line.ingredient_id ? '' : line.text,
+              amount: line.amount !== null ? formatAmount(line.amount) : '',
+              unit: line.unit,
+              isOptional: line.is_optional,
+              isGarnish: line.is_garnish,
+              note: line.note ?? '',
+            }),
+          )
+        : [newLine()],
+    );
+    setMethod(recipe.method);
+    setIce(recipe.ice);
+    setGlass(recipe.glass ?? '');
+    setGarnish(recipe.garnish ?? '');
+    setSteps(recipe.instructions.length > 0 ? recipe.instructions : ['']);
+    setNotes(recipe.notes ?? '');
+    setTags(recipe.flavor_tags.join(', '));
+    setServings(recipe.servings ?? 1);
+    setBaseIngredientId(null);
+    setTouched(false);
+  }
+
   const titleError = touched && !title.trim() ? 'Give it a name.' : null;
   const linesError = touched && rows.length === 0 ? 'Add at least one ingredient.' : null;
 
@@ -147,7 +203,7 @@ export default function RecipeEditorScreen() {
         .filter(Boolean),
       base_ingredient_id: effectiveBase,
       abv_estimate: existing?.abv_estimate ?? null,
-      servings: existing?.servings ?? 1,
+      servings,
       ai_prompt: existing?.ai_prompt ?? null,
       ai_model: existing?.ai_model ?? null,
       ingredients: rows.map((row) => ({
@@ -192,6 +248,8 @@ export default function RecipeEditorScreen() {
         style={styles.flex}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {!isEditing ? <ScanRecipe onRead={applyRead} hasContent={hasContent} /> : null}
+
           <TextField
             label="Name"
             value={title}
