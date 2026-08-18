@@ -65,7 +65,7 @@
       </div>
     </div>
 
-    <!-- Phone mockup 1 — Home / Tonight deck -->
+    <!-- Phone mockup — Home / Tonight deck -->
     <figure class="hero__phone" data-reveal data-slide="right" style="--i:2" aria-label="The Flanagan home screen: an evening greeting, tonight’s makeable cocktails, and the one-bottle-away ledger.">
       <div class="phone phone--tilt" data-parallax="0.07">
         <div class="phone__screen" aria-hidden="true">
@@ -155,116 +155,238 @@
 
   <div class="shell"><div class="ornament" role="presentation"><span class="ornament__diamond"></span></div></div>
 
-  <!-- ========================== BARKEEP ========================== -->
-  <section class="feature feature--flip shell">
-    <div class="feature__copy">
-      <p class="overline" data-reveal style="--i:0">Ask the barkeep</p>
-      <h2 class="title" data-reveal data-slide="up" style="--i:1">“Something bitter and stirred.”</h2>
-      <p class="serif-body" data-reveal data-slide="up" style="--i:2">Describe what you feel like, in your own words. The barkeep answers in plain language — and only from what’s on your shelf. No suggestions for bottles you don’t own; no shopping list disguised as a recipe.</p>
-      <ul class="chips" data-reveal data-slide="up" style="--i:3" aria-label="Example requests">
-        <li class="chip">Something fresh and citrusy</li>
-        <li class="chip">Short, strong and spirit-forward</li>
-        <li class="chip">Use up my rum</li>
-        <li class="chip">Surprise me</li>
-      </ul>
-    </div>
+  <!-- ====================== STORY: ONE EVENING ======================= -->
+  <!-- The pinned scene: one phone holds the centre while three chapters
+       scroll past it, and its screen turns like a page — the barkeep, the
+       shelf, the notebook. On narrow screens the pin is retired and each
+       chapter carries its own phone. -->
+  <section class="story">
+    <div class="story__layout shell">
 
-    <!-- Phone mockup 2 — Barkeep -->
-    <figure class="feature__phone" data-reveal data-slide="left" aria-label="The barkeep screen: you ask for something bitter and stirred, and it answers with a Negroni made from your own shelf.">
-      <div class="phone" data-parallax="0.06">
-        <div class="phone__screen" aria-hidden="true">
-          <div class="m-status"><span>22:03</span><span class="m-status__glyphs">•••</span></div>
-          <p class="m-overline m-overline--center">Barkeep</p>
+      <figure class="story__media" aria-label="A tour of Flanagan’s screens: asking the barkeep, the bar inventory, and the recipe notebook.">
+        <div class="phone">
 
-          <div class="ask">
-            <p class="ask__bubble">Something bitter and stirred</p>
-            <div class="ask__answer">
-              <p class="ask__name">Negroni</p>
-              <p class="ask__body">Equal parts, stirred over ice — everything’s on your shelf.</p>
-              <p class="ask__spec">gin · campari · sweet vermouth</p>
+          <!-- Screen 1 — Barkeep -->
+          <div class="phone__screen story__screen is-active" data-screen="ask" aria-hidden="true">
+            <div class="m-status"><span>22:03</span><span class="m-status__glyphs">•••</span></div>
+            <p class="m-overline m-overline--center">Barkeep</p>
+            <div class="ask">
+              <p class="ask__bubble m-stagger" style="--s:0">Something bitter and stirred</p>
+              <div class="ask__answer m-stagger" style="--s:1">
+                <p class="ask__name">Negroni</p>
+                <p class="ask__body">Equal parts, stirred over ice — everything’s on your shelf.</p>
+                <p class="ask__spec">gin · campari · sweet vermouth</p>
+              </div>
+              <div class="ask__answer ask__answer--faint m-stagger" style="--s:2">
+                <p class="ask__name">Boulevardier</p>
+                <p class="ask__body">The same idea, but warmer — rye where the gin was.</p>
+              </div>
             </div>
-            <div class="ask__answer ask__answer--faint">
-              <p class="ask__name">Boulevardier</p>
-              <p class="ask__body">The same idea, but warmer — rye where the gin was.</p>
+            <div class="ask__input m-stagger" style="--s:3">
+              <span>Ask the barkeep…</span>
+              <span class="ask__send"></span>
             </div>
           </div>
 
-          <div class="ask__input">
-            <span>Ask the barkeep…</span>
-            <span class="ask__send"></span>
+          <!-- Screen 2 — Bar -->
+          <div class="phone__screen story__screen" data-screen="bar" aria-hidden="true">
+            <div class="m-status"><span>18:26</span><span class="m-status__glyphs">•••</span></div>
+            <p class="m-overline">Your bar · 23 bottles</p>
+            <div class="bar-list">
+              <div class="bar-row">
+                <span class="bar-row__dot" style="--dot: var(--cat-gin)"></span>
+                <span class="bar-row__text"><strong>Tanqueray No. Ten</strong><em>gin · 70 cl</em></span>
+                <span class="bar-row__gauge"><span style="--fill: 85%"></span></span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-row__dot" style="--dot: var(--cat-whisky)"></span>
+                <span class="bar-row__text"><strong>Rittenhouse Rye</strong><em>whisky · 75 cl</em></span>
+                <span class="bar-row__gauge"><span style="--fill: 60%"></span></span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-row__dot" style="--dot: var(--cat-amaro)"></span>
+                <span class="bar-row__text"><strong>Campari</strong><em>amaro · 70 cl</em></span>
+                <span class="bar-row__gauge"><span style="--fill: 35%"></span></span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-row__dot" style="--dot: var(--cat-vermouth)"></span>
+                <span class="bar-row__text"><strong>Cocchi di Torino</strong><em>vermouth · 75 cl<span class="bar-row__low"> — running low</span></em></span>
+                <span class="bar-row__gauge"><span class="bar-row__gauge--low" style="--fill: 12%"></span></span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-row__dot" style="--dot: var(--cat-rum)"></span>
+                <span class="bar-row__text"><strong>Smith &amp; Cross</strong><em>rum · 70 cl</em></span>
+                <span class="bar-row__gauge"><span style="--fill: 72%"></span></span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-row__dot" style="--dot: var(--cat-liqueur)"></span>
+                <span class="bar-row__text"><strong>Cointreau</strong><em>liqueur · 50 cl</em></span>
+                <span class="bar-row__gauge"><span style="--fill: 48%"></span></span>
+              </div>
+            </div>
           </div>
+
+          <!-- Screen 3 — Notebook -->
+          <div class="phone__screen story__screen" data-screen="notes" aria-hidden="true">
+            <div class="m-status"><span>20:12</span><span class="m-status__glyphs">•••</span></div>
+            <p class="m-overline">Notebook · 12 recipes</p>
+            <div class="note-list">
+              <div class="note-row m-stagger" style="--s:0">
+                <span class="note-row__no">No. 8</span>
+                <span class="note-row__text"><strong>Boulevardier</strong><em>rye · campari · sweet vermouth</em></span>
+                <span class="note-row__tag">Makeable</span>
+              </div>
+              <div class="note-row m-stagger" style="--s:1">
+                <span class="note-row__no">No. 12</span>
+                <span class="note-row__text"><strong>Army &amp; Navy</strong><em>gin · lemon · orgeat</em></span>
+                <span class="note-row__tag">Makeable</span>
+              </div>
+              <div class="note-row m-stagger" style="--s:2">
+                <span class="note-row__no">No. 5</span>
+                <span class="note-row__text"><strong>White Negroni</strong><em>gin · suze · blanc vermouth</em></span>
+                <span class="note-row__tag note-row__tag--short">1 short</span>
+              </div>
+              <div class="note-row m-stagger" style="--s:3">
+                <span class="note-row__no">No. 2</span>
+                <span class="note-row__text"><strong>Martinez</strong><em>gin · vermouth · maraschino</em></span>
+                <span class="note-row__tag">Makeable</span>
+              </div>
+              <div class="note-row m-stagger" style="--s:4">
+                <span class="note-row__no">No. 9</span>
+                <span class="note-row__text"><strong>Paper Plane</strong><em>bourbon · aperol · amaro</em></span>
+                <span class="note-row__tag">Makeable</span>
+              </div>
+            </div>
+            <p class="note-scan m-stagger" style="--s:5">Photograph a page — Flanagan reads it.</p>
+          </div>
+
         </div>
-      </div>
-      <figcaption class="visually-hidden">A hand-drawn preview of the barkeep screen.</figcaption>
-    </figure>
-  </section>
+        <figcaption class="visually-hidden">A hand-drawn tour of the app’s screens.</figcaption>
+      </figure>
 
-  <div class="shell"><div class="ornament" role="presentation"><span class="ornament__diamond"></span></div></div>
+      <div class="story__panels">
 
-  <!-- ========================== THE SHELF ========================== -->
-  <section class="feature shell">
-    <div class="feature__copy">
-      <p class="overline" data-reveal style="--i:0">The shelf</p>
-      <h2 class="title" data-reveal data-slide="up" style="--i:1">Your bar, kept without the bookkeeping.</h2>
-      <p class="serif-body" data-reveal data-slide="up" style="--i:2">Every bottle carries a fill gauge and a category; a swipe marks one empty when it runs dry. Staples — the limes, the sugar, the soda water — live alongside, because they decide whether a drink is actually possible.</p>
-      <p class="serif-body" data-reveal data-slide="up" style="--i:3">Adding is the fast part. Scan a barcode, or point the camera at the whole shelf and let Flanagan do the counting — it reads the labels, you tick what to keep.</p>
-    </div>
-
-    <!-- Phone mockup 3 — Bar inventory -->
-    <figure class="feature__phone" data-reveal data-slide="right" aria-label="The bar screen: a list of bottles with category dots and fill gauges, one of them running low.">
-      <div class="phone" data-parallax="0.06">
-        <div class="phone__screen" aria-hidden="true">
-          <div class="m-status"><span>18:26</span><span class="m-status__glyphs">•••</span></div>
-          <p class="m-overline">Your bar · 23 bottles</p>
-
-          <div class="bar-list">
-            <div class="bar-row">
-              <span class="bar-row__dot" style="--dot: var(--cat-gin)"></span>
-              <span class="bar-row__text"><strong>Tanqueray No. Ten</strong><em>gin · 70 cl</em></span>
-              <span class="bar-row__gauge"><span style="--fill: 85%"></span></span>
+        <!-- Chapter 1 — Barkeep -->
+        <div class="story__panel" data-screen="ask">
+          <figure class="story__inline" data-reveal aria-hidden="true">
+            <div class="phone">
+              <div class="phone__screen">
+                <div class="m-status"><span>22:03</span><span class="m-status__glyphs">•••</span></div>
+                <p class="m-overline m-overline--center">Barkeep</p>
+                <div class="ask">
+                  <p class="ask__bubble">Something bitter and stirred</p>
+                  <div class="ask__answer">
+                    <p class="ask__name">Negroni</p>
+                    <p class="ask__body">Equal parts, stirred over ice — everything’s on your shelf.</p>
+                    <p class="ask__spec">gin · campari · sweet vermouth</p>
+                  </div>
+                  <div class="ask__answer ask__answer--faint">
+                    <p class="ask__name">Boulevardier</p>
+                    <p class="ask__body">The same idea, but warmer — rye where the gin was.</p>
+                  </div>
+                </div>
+                <div class="ask__input">
+                  <span>Ask the barkeep…</span>
+                  <span class="ask__send"></span>
+                </div>
+              </div>
             </div>
-            <div class="bar-row">
-              <span class="bar-row__dot" style="--dot: var(--cat-whisky)"></span>
-              <span class="bar-row__text"><strong>Rittenhouse Rye</strong><em>whisky · 75 cl</em></span>
-              <span class="bar-row__gauge"><span style="--fill: 60%"></span></span>
-            </div>
-            <div class="bar-row">
-              <span class="bar-row__dot" style="--dot: var(--cat-amaro)"></span>
-              <span class="bar-row__text"><strong>Campari</strong><em>amaro · 70 cl</em></span>
-              <span class="bar-row__gauge"><span style="--fill: 35%"></span></span>
-            </div>
-            <div class="bar-row">
-              <span class="bar-row__dot" style="--dot: var(--cat-vermouth)"></span>
-              <span class="bar-row__text"><strong>Cocchi di Torino</strong><em>vermouth · 75 cl<span class="bar-row__low"> — running low</span></em></span>
-              <span class="bar-row__gauge"><span class="bar-row__gauge--low" style="--fill: 12%"></span></span>
-            </div>
-            <div class="bar-row">
-              <span class="bar-row__dot" style="--dot: var(--cat-rum)"></span>
-              <span class="bar-row__text"><strong>Smith &amp; Cross</strong><em>rum · 70 cl</em></span>
-              <span class="bar-row__gauge"><span style="--fill: 72%"></span></span>
-            </div>
-            <div class="bar-row">
-              <span class="bar-row__dot" style="--dot: var(--cat-liqueur)"></span>
-              <span class="bar-row__text"><strong>Cointreau</strong><em>liqueur · 50 cl</em></span>
-              <span class="bar-row__gauge"><span style="--fill: 48%"></span></span>
-            </div>
-          </div>
+          </figure>
+          <p class="overline" data-reveal style="--i:0">Ask the barkeep</p>
+          <h2 class="title" data-reveal data-slide="up" style="--i:1">“Something bitter and stirred.”</h2>
+          <p class="serif-body" data-reveal data-slide="up" style="--i:2">Describe what you feel like, in your own words. The barkeep answers in plain language — and only from what’s on your shelf. No suggestions for bottles you don’t own; no shopping list disguised as a recipe.</p>
+          <ul class="chips" data-reveal data-slide="up" style="--i:3" aria-label="Example requests">
+            <li class="chip">Something fresh and citrusy</li>
+            <li class="chip">Short, strong and spirit-forward</li>
+            <li class="chip">Use up my rum</li>
+            <li class="chip">Surprise me</li>
+          </ul>
         </div>
+
+        <!-- Chapter 2 — The shelf -->
+        <div class="story__panel" data-screen="bar">
+          <figure class="story__inline" data-reveal aria-hidden="true">
+            <div class="phone">
+              <div class="phone__screen">
+                <div class="m-status"><span>18:26</span><span class="m-status__glyphs">•••</span></div>
+                <p class="m-overline">Your bar · 23 bottles</p>
+                <div class="bar-list">
+                  <div class="bar-row">
+                    <span class="bar-row__dot" style="--dot: var(--cat-gin)"></span>
+                    <span class="bar-row__text"><strong>Tanqueray No. Ten</strong><em>gin · 70 cl</em></span>
+                    <span class="bar-row__gauge"><span style="--fill: 85%"></span></span>
+                  </div>
+                  <div class="bar-row">
+                    <span class="bar-row__dot" style="--dot: var(--cat-whisky)"></span>
+                    <span class="bar-row__text"><strong>Rittenhouse Rye</strong><em>whisky · 75 cl</em></span>
+                    <span class="bar-row__gauge"><span style="--fill: 60%"></span></span>
+                  </div>
+                  <div class="bar-row">
+                    <span class="bar-row__dot" style="--dot: var(--cat-amaro)"></span>
+                    <span class="bar-row__text"><strong>Campari</strong><em>amaro · 70 cl</em></span>
+                    <span class="bar-row__gauge"><span style="--fill: 35%"></span></span>
+                  </div>
+                  <div class="bar-row">
+                    <span class="bar-row__dot" style="--dot: var(--cat-vermouth)"></span>
+                    <span class="bar-row__text"><strong>Cocchi di Torino</strong><em>vermouth · 75 cl<span class="bar-row__low"> — running low</span></em></span>
+                    <span class="bar-row__gauge"><span class="bar-row__gauge--low" style="--fill: 12%"></span></span>
+                  </div>
+                  <div class="bar-row">
+                    <span class="bar-row__dot" style="--dot: var(--cat-rum)"></span>
+                    <span class="bar-row__text"><strong>Smith &amp; Cross</strong><em>rum · 70 cl</em></span>
+                    <span class="bar-row__gauge"><span style="--fill: 72%"></span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <p class="overline" data-reveal style="--i:0">The shelf</p>
+          <h2 class="title" data-reveal data-slide="up" style="--i:1">Your bar, kept without the bookkeeping.</h2>
+          <p class="serif-body" data-reveal data-slide="up" style="--i:2">Every bottle carries a fill gauge and a category; a swipe marks one empty when it runs dry. Staples — the limes, the sugar, the soda water — live alongside, because they decide whether a drink is actually possible.</p>
+          <p class="serif-body" data-reveal data-slide="up" style="--i:3">Adding is the fast part. Scan a barcode, or point the camera at the whole shelf and let Flanagan do the counting — it reads the labels, you tick what to keep.</p>
+        </div>
+
+        <!-- Chapter 3 — The notebook -->
+        <div class="story__panel" data-screen="notes">
+          <figure class="story__inline" data-reveal aria-hidden="true">
+            <div class="phone">
+              <div class="phone__screen">
+                <div class="m-status"><span>20:12</span><span class="m-status__glyphs">•••</span></div>
+                <p class="m-overline">Notebook · 12 recipes</p>
+                <div class="note-list">
+                  <div class="note-row">
+                    <span class="note-row__no">No. 8</span>
+                    <span class="note-row__text"><strong>Boulevardier</strong><em>rye · campari · sweet vermouth</em></span>
+                    <span class="note-row__tag">Makeable</span>
+                  </div>
+                  <div class="note-row">
+                    <span class="note-row__no">No. 12</span>
+                    <span class="note-row__text"><strong>Army &amp; Navy</strong><em>gin · lemon · orgeat</em></span>
+                    <span class="note-row__tag">Makeable</span>
+                  </div>
+                  <div class="note-row">
+                    <span class="note-row__no">No. 5</span>
+                    <span class="note-row__text"><strong>White Negroni</strong><em>gin · suze · blanc vermouth</em></span>
+                    <span class="note-row__tag note-row__tag--short">1 short</span>
+                  </div>
+                  <div class="note-row">
+                    <span class="note-row__no">No. 2</span>
+                    <span class="note-row__text"><strong>Martinez</strong><em>gin · vermouth · maraschino</em></span>
+                    <span class="note-row__tag">Makeable</span>
+                  </div>
+                </div>
+                <p class="note-scan">Photograph a page — Flanagan reads it.</p>
+              </div>
+            </div>
+          </figure>
+          <p class="flourish story__no" data-reveal aria-hidden="true">No. 12</p>
+          <p class="overline" data-reveal style="--i:0">The notebook</p>
+          <h2 class="title" data-reveal data-slide="up" style="--i:1">Every recipe, in one hand.</h2>
+          <p class="serif-body" data-reveal data-slide="up" style="--i:2">Suggestions you save and recipes you write yourself land in the same notebook, in the same format, numbered like the pages of a menu. Photograph a page from a book, a menu, a screenshot — Flanagan reads it and fills the editor for you.</p>
+          <p class="serif-body" data-reveal data-slide="up" style="--i:3">Millilitres or ounces, at a toggle. A dash stays a dash.</p>
+        </div>
+
       </div>
-      <figcaption class="visually-hidden">A hand-drawn preview of the bar inventory screen.</figcaption>
-    </figure>
-  </section>
-
-  <div class="shell"><div class="ornament" role="presentation"><span class="ornament__diamond"></span></div></div>
-
-  <!-- ========================== NOTEBOOK ========================== -->
-  <section class="notebook shell">
-    <p class="notebook__no flourish" data-reveal data-slide="left" aria-hidden="true"><span data-parallax="0.12">No. 12</span></p>
-    <div class="notebook__copy">
-      <p class="overline" data-reveal style="--i:0">The notebook</p>
-      <h2 class="title" data-reveal data-slide="up" style="--i:1">Every recipe, in one hand.</h2>
-      <p class="serif-body" data-reveal data-slide="up" style="--i:2">Suggestions you save and recipes you write yourself land in the same notebook, in the same format, numbered like the pages of a menu. Photograph a page from a book, a menu, a screenshot — Flanagan reads it and fills the editor for you.</p>
-      <p class="serif-body" data-reveal data-slide="up" style="--i:3">Millilitres or ounces, at a toggle. A dash stays a dash.</p>
     </div>
   </section>
 

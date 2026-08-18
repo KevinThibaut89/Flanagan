@@ -146,6 +146,32 @@
     }
   }
 
+  // ---------------------------------------------------------------- story --
+  // The pinned scene: as each chapter panel crosses the middle of the
+  // viewport, the sticky phone turns to that chapter's screen. Runs under
+  // reduced motion too — it's a content change; CSS decides whether it
+  // animates.
+  var storyPanels = document.querySelectorAll('.story__panel');
+  var storyScreens = document.querySelectorAll('.story__media .story__screen');
+  if (storyPanels.length && storyScreens.length && 'IntersectionObserver' in window) {
+    var setScreen = function (key) {
+      storyScreens.forEach(function (screen) {
+        screen.classList.toggle('is-active', screen.dataset.screen === key);
+      });
+    };
+    var storyObserver = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) setScreen(entry.target.dataset.screen);
+        });
+      },
+      { rootMargin: '-35% 0px -55% 0px', threshold: 0 }
+    );
+    storyPanels.forEach(function (panel) {
+      storyObserver.observe(panel);
+    });
+  }
+
   // ----------------------------------------------------------------- deck --
   // The Tonight deck deals itself while it's on screen, echoing the app's
   // swipe — and a tap still deals the next card by hand.

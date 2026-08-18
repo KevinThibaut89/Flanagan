@@ -394,12 +394,10 @@ a { color: inherit; }
 .feature__copy { max-width: 34em; align-self: center; }
 .feature__copy .title { margin-top: 16px; }
 .feature__copy .serif-body { margin-top: 20px; }
-.feature__phone, .feature__aside { margin: 0; display: flex; justify-content: center; align-self: center; }
+.feature__aside { margin: 0; display: flex; justify-content: center; align-self: center; }
 
 @media (min-width: 900px) {
   .feature { grid-template-columns: 1fr 1fr; gap: 48px; }
-  .feature--flip .feature__copy { order: 2; }
-  .feature--flip .feature__phone { order: 1; }
 }
 
 /* ------------------------- tonight ledger (in page) ----------------------- */
@@ -734,26 +732,128 @@ a { color: inherit; }
 }
 .bar-row__gauge--low { background: var(--warning) !important; }
 
-/* -------------------------------- notebook -------------------------------- */
-.notebook {
-  display: grid;
-  gap: 32px;
-  padding-block: var(--section);
+/* ---------------------------- mockup 4: notebook --------------------------- */
+.note-list { margin-top: 2px; }
+.note-row {
+  display: flex;
   align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
-.notebook__no {
-  font-size: clamp(4.5rem, 12vw, 8rem);
-  line-height: 1;
+.note-row__no {
+  flex: none;
+  width: 44px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 12.5px;
   color: var(--cream);
+}
+.note-row__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.note-row__text strong {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.note-row__text em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.note-row__tag {
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--success);
+}
+.note-row__tag--short { color: var(--text-faint); }
+.note-scan {
+  margin-top: 16px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 16px;
+  color: var(--text-faint);
   text-align: center;
 }
-.notebook__copy { max-width: 34em; justify-self: center; }
-.notebook__copy .title { margin-top: 16px; }
-.notebook__copy .serif-body { margin-top: 20px; }
+
+/* ---------------------------------- story ---------------------------------
+   The pinned scene. Desktop: the phone holds the right column, sticky and
+   centred, while three chapters scroll down the left; each chapter turns the
+   phone's screen. Narrow screens retire the pin — the shared phone hides and
+   each chapter carries its own inline copy. */
+.story__layout { display: grid; }
+
+.story__media {
+  display: none;
+  margin: 0;
+}
+
+.story__panel {
+  padding-block: clamp(48px, 9vw, 88px);
+}
+.story__panel .title { margin-top: 16px; }
+.story__panel .serif-body { margin-top: 20px; }
+.story__panel .overline { margin-top: 0; }
+
+.story__inline {
+  margin: 0 0 36px;
+  display: flex;
+  justify-content: center;
+}
+
+.story__no {
+  font-size: clamp(2.6rem, 6vw, 3.4rem);
+  line-height: 1;
+  color: var(--cream);
+  margin-bottom: 20px;
+}
+
+/* The stacked screens: only the active chapter's screen is present. The
+   opacity swap is functional (the screens overlap), so it lives outside the
+   reduced-motion gate; only the drift of the swap is motion. */
+.story__screen {
+  opacity: 0;
+  visibility: hidden;
+}
+.story__screen.is-active {
+  opacity: 1;
+  visibility: visible;
+}
 
 @media (min-width: 900px) {
-  .notebook { grid-template-columns: 0.8fr 1.2fr; }
-  .notebook__copy { justify-self: start; }
+  .story__layout {
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+  }
+  .story__media {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    order: 2;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+  }
+  .story__media .phone { width: min(300px, 44vh); }
+  .story__inline { display: none; }
+  .story__panels { order: 1; }
+  .story__panel {
+    min-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 34em;
+    padding-block: 0;
+  }
 }
 
 /* --------------------------------- steps ---------------------------------- */
@@ -876,13 +976,46 @@ html, body { overflow-x: clip; }
     transform: translate3d(0, var(--py, 0px), 0) rotate(2.5deg);
   }
 
-  /* The fill gauges pour in when the bar mockup arrives. */
+  /* The fill gauges pour in when the bar mockup arrives — by scrolling into
+     view (inline phones) or by the story turning to the bar screen. */
   html.js .bar-row__gauge > span {
     width: 0;
     transition: width 1100ms cubic-bezier(0.22, 1, 0.36, 1);
     transition-delay: calc(360ms + var(--g, 0) * 110ms);
   }
-  html.js .is-in .bar-row__gauge > span { width: var(--fill, 50%); }
+  html.js .is-in .bar-row__gauge > span,
+  html.js .story__screen.is-active .bar-row__gauge > span { width: var(--fill, 50%); }
+
+  /* The story screen turns like a page: rise-and-settle in, sink out. */
+  .story__screen {
+    transform: translateY(18px) scale(0.985);
+    transition:
+      opacity 520ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear 520ms;
+  }
+  .story__screen.is-active {
+    transform: none;
+    transition:
+      opacity 520ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s;
+  }
+
+  /* Inside the pinned phone, each screen's furniture settles in a beat after
+     the page turn. Scoped to the sticky phone — inline phones stay static. */
+  html.js .story__media .m-stagger {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+      opacity 460ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: calc(220ms + var(--s, 0) * 90ms);
+  }
+  html.js .story__media .is-active .m-stagger {
+    opacity: 1;
+    transform: none;
+  }
   .bar-row:nth-child(1) { --g: 0; }
   .bar-row:nth-child(2) { --g: 1; }
   .bar-row:nth-child(3) { --g: 2; }
