@@ -116,10 +116,18 @@ fires, a purchase unlocks the screens but not the allowances. RevenueCat
 delivers within seconds and retries on anything but a 2xx.
 
 The app reads `EXPO_PUBLIC_REVENUECAT_API_KEY` from `.env`. A **Test Store**
-key (`test_…`) drives RevenueCat's simulated store and works everywhere,
-Expo Go included (the SDK falls back to its browser mode there). The App
-Store and Play keys (`appl_…`, `goog_…`) replace it in the build profiles
-that ship; both are public keys, safe in the bundle.
+key (`test_…`) drives RevenueCat's simulated store, so purchases can be
+exercised end to end without App Store Connect. The App Store and Play keys
+(`appl_…`, `goog_…`) replace it in the build profiles that ship; both are
+public keys, safe in the bundle.
+
+**Purchases need a development build.** `react-native-purchases` is a native
+module; in Expo Go the SDK falls back to a browser shim that needs a DOM and
+throws "document is not available" the moment a paywall is presented. The
+provider detects the missing native module and disables the Plus buttons
+with a note rather than trying. To test the paywall, the webhook and the
+tier flip, run `npx expo run:ios` on a cabled phone (or an EAS development
+build) — everything else in the app still works in Expo Go.
 
 Enrol in Apple's Small Business Program and Google's equivalent before
 launch: the 15% rather than 30% commission is the largest single line in the

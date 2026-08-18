@@ -25,7 +25,7 @@ export function PlusNotice({
 }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const { available, isPlus, presentPaywall } = usePurchases();
+  const { available, unavailableReason, isPlus, presentPaywall } = usePurchases();
   const { data: plan } = usePlan();
 
   const resets = new Date(error.quota.resets_at);
@@ -51,7 +51,9 @@ export function PlusNotice({
           {available ? (
             <Button label="Get Flanagan Plus" onPress={() => void upgrade()} />
           ) : (
-            <Muted>Plus is available in the App Store build. {resetLine}</Muted>
+            <Muted>
+              {unavailableReason ?? 'Plus is not available in this build.'} {resetLine}
+            </Muted>
           )}
         </>
       )}

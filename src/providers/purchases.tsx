@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { NativeModules } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import Purchases, {
   LOG_LEVEL,
@@ -40,9 +41,23 @@ import { useAuth } from './auth';
  * the profile without a lookup table.
  */
 
+/**
+ * Whether the native RevenueCat modules are in this binary. They are not in
+ * Expo Go: the SDK then falls back to a browser-mode shim that needs a DOM,
+ * and presenting the paywall throws "document is not available". Nothing to
+ * be done about it in JS — purchases want a development build
+ * (`npx expo run:ios`) — so the provider says so instead of trying.
+ */
+const NATIVE_PURCHASES_AVAILABLE = Boolean(NativeModules.RNPurchases);
+const NATIVE_PAYWALLS_AVAILABLE = Boolean(NativeModules.RNPaywalls);
+
 interface PurchasesValue {
-  /** False when the SDK could not be configured (no key, unsupported platform). */
+  /**
+   * False when purchases cannot happen in this build: no native module (Expo
+   * Go), no API key, or the SDK failed to start. `unavailableReason` says which.
+   */
   available: boolean;
+  unavailableReason: string | null;
   /** True until the first CustomerInfo has arrived. */
   loading: boolean;
   isPlus: boolean;
@@ -70,6 +85,7 @@ export function PurchasesProvider({ children }: { children: ReactNode }) {
   const userId = user?.id ?? null;
 
   const [available, setAvailable] = useState(false);
+  const [unavailableReason, setUnavailableReason] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const configured = useRef(false);
@@ -82,8 +98,17 @@ export function PurchasesProvider({ children }: { children: ReactNode }) {
 
     async function setUp() {
       try {
+        if (!NATIVE_PURCHASES_AVAILABLE || !NATIVE_PAYWALLS_AVAILABLE) {
+          setUnavailableReason(
+            'Purchases need the development build — Expo Go cannot show the store.',
+          );
+          setAvailable(false);
+          setLoading(false);
+          return;
+        }
         if (!REVENUECAT_API_KEY) {
           console.warn('EXPO_PUBLIC_REVENUECAT_API_KEY is not set; purchases are off.');
+          setUnavailableReason('Purchases are not configured in this build.');
           setAvailable(false);
           setLoading(false);
           return;
@@ -104,7 +129,10 @@ export function PurchasesProvider({ children }: { children: ReactNode }) {
         setAvailable(true);
       } catch (cause) {
         console.warn('RevenueCat could not start', cause);
-        if (!cancelled) setAvailable(false);
+        if (!cancelled) {
+          setAvailable(false);
+          setUnavailableReason('The store could not be reached. Try again in a moment.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -152,6 +180,7 @@ export function PurchasesProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PurchasesValue>(
     () => ({
       available,
+      unavailableReason,
       loading,
       isPlus,
       customerInfo,
@@ -217,7 +246,7 @@ export function PurchasesProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [available, loading, isPlus, customerInfo, syncPlan],
+    [available, unavailableReason, loading, isPlus, customerInfo, syncPlan],
   );
 
   return <PurchasesContext.Provider value={value}>{children}</PurchasesContext.Provider>;

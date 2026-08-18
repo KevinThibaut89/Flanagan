@@ -97,8 +97,15 @@ function OptionList<T extends string>({
 function PlanSection() {
   const styles = useThemedStyles(makeStyles);
   const { data: plan } = usePlan();
-  const { available, isPlus, loading, presentPaywall, presentCustomerCenter, restore } =
-    usePurchases();
+  const {
+    available,
+    unavailableReason,
+    isPlus,
+    loading,
+    presentPaywall,
+    presentCustomerCenter,
+    restore,
+  } = usePurchases();
   const [restoreNote, setRestoreNote] = useState<string | null>(null);
 
   // The server's tier is what the allowances follow; RevenueCat's is what a
@@ -129,7 +136,7 @@ function PlanSection() {
       </Card>
       {!available ? (
         <Muted style={styles.note}>
-          {loading ? 'Checking the store…' : 'Purchases are available in the App Store build.'}
+          {loading ? 'Checking the store…' : (unavailableReason ?? 'Purchases are not available in this build.')}
         </Muted>
       ) : plus ? (
         <Button
