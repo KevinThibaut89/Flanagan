@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The Flanagan monogram: walnut disc, copper ring, italic F in cream. -->
+  <circle cx="16" cy="16" r="14.75" fill="#120E0B" stroke="#C87F3C" stroke-width="1.5"/>
+  <text x="16.5" y="17" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, 'Times New Roman', serif" font-style="italic"
+        font-size="18" fill="#E9DCC9">F</text>
+</svg>

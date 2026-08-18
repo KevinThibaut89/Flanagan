@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flanagan — your bar, and what it can make tonight</title>
+  <meta name="description" content="Flanagan is a personal mixology app. Track your bottles and staples, ask the barkeep in plain language, and see the cocktails your shelf can actually make tonight.">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#120E0B">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F5EFE6">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script>
+    // Apply a stored theme choice before first paint so there is no flash.
+    try {
+      var t = localStorage.getItem('flanagan-theme');
+      if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="shell site-header__row">
+    <a class="brand" href="#top" aria-label="Flanagan — back to top">
+      <svg class="monogram" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false">
+        <circle cx="16" cy="16" r="15" fill="none" stroke="var(--accent)" stroke-width="1"/>
+        <text x="16" y="16.5" text-anchor="middle" dominant-baseline="central" class="monogram__f">F</text>
+      </svg>
+      <span class="brand__name">Flanagan</span>
+    </a>
+    <div class="site-header__actions">
+      <span class="pill pill--copper">Coming&nbsp;soon</span>
+      <button class="theme-toggle" type="button" aria-label="Switch between dark and light appearance">
+        <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+            <path d="M13.2 9.8a5.6 5.6 0 0 1-7-7 5.9 5.9 0 1 0 7 7Z"/>
+          </svg>
+        </span>
+        <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+            <circle cx="8" cy="8" r="3.2"/>
+            <path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M12.8 3.2l-1.1 1.1M4.3 11.7l-1.1 1.1"/>
+          </svg>
+        </span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============================== HERO ============================== -->
+  <section class="hero shell">
+    <div class="hero__copy">
+      <p class="overline" data-reveal style="--i:0">A personal mixology app</p>
+      <h1 class="display" data-reveal style="--i:1">Your bar, and what it can make tonight.</h1>
+      <p class="serif-body lede" data-reveal style="--i:2">Flanagan keeps track of your bottles and your everyday staples — the limes, the syrup, the soda — and tells you honestly which cocktails are within reach. Not ten thousand recipes. The ones you can pour.</p>
+      <div class="hero__cta" data-reveal style="--i:3">
+        <a class="button button--primary" href="#closing">Coming to the App&nbsp;Store</a>
+        <p class="flourish hero__note">In development for iPhone and Android.</p>
+      </div>
+    </div>
+
+    <!-- Phone mockup 1 — Home / Tonight deck -->
+    <figure class="hero__phone" data-reveal style="--i:2" aria-label="The Flanagan home screen: an evening greeting, tonight’s makeable cocktails, and the one-bottle-away ledger.">
+      <div class="phone phone--tilt">
+        <div class="phone__screen" aria-hidden="true">
+          <div class="m-status"><span>21:47</span><span class="m-status__glyphs">•••</span></div>
+          <p class="m-flourish">Good evening</p>
+          <p class="m-counts">23 in stock&ensp;·&ensp;<span class="m-counts__reach">14 within reach</span></p>
+
+          <p class="m-overline">Tonight</p>
+          <div class="deck" id="deck">
+            <div class="deck__card" data-pos="0">
+              <p class="deck__no">No. 8</p>
+              <p class="deck__name">Boulevardier</p>
+              <p class="deck__spec">rye · campari · sweet vermouth</p>
+              <p class="deck__stock">All in stock</p>
+            </div>
+            <div class="deck__card" data-pos="1">
+              <p class="deck__no">No. 3</p>
+              <p class="deck__name">Corpse Reviver</p>
+              <p class="deck__spec">gin · cointreau · lillet · lemon</p>
+              <p class="deck__stock">All in stock</p>
+            </div>
+            <div class="deck__card" data-pos="2">
+              <p class="deck__no">No. 17</p>
+              <p class="deck__name">Paper Plane</p>
+              <p class="deck__spec">bourbon · aperol · amaro · lemon</p>
+              <p class="deck__stock">All in stock</p>
+            </div>
+          </div>
+
+          <p class="m-overline m-overline--gap">One bottle away</p>
+          <div class="m-ledger">
+            <div class="m-ledger__row">
+              <span class="m-ledger__n">6</span>
+              <span class="m-ledger__what">Green Chartreuse<em>unlocks six drinks</em></span>
+            </div>
+            <div class="m-ledger__row">
+              <span class="m-ledger__n">4</span>
+              <span class="m-ledger__what">Maraschino<em>unlocks four drinks</em></span>
+            </div>
+          </div>
+
+          <div class="m-tabbar">
+            <span class="m-tabbar__item m-tabbar__item--active">Home</span>
+            <span class="m-tabbar__item">Bar</span>
+            <span class="m-tabbar__disc">
+              <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.5 2.5h11L8 8.5Zm5.5 6v4.5M5 13.5h6M5 4.8h6"/>
+              </svg>
+            </span>
+            <span class="m-tabbar__item">Recipes</span>
+            <span class="m-tabbar__item">Scan</span>
+          </div>
+        </div>
+      </div>
+      <figcaption class="visually-hidden">A hand-drawn preview of the Flanagan home screen.</figcaption>
+    </figure>
+  </section>
+
+  <div class="shell"><div class="ornament" role="presentation"><span class="ornament__diamond"></span></div></div>
+
+  <!-- ========================= TONIGHT DECK ========================= -->
+  <section class="feature shell">
+    <div class="feature__copy">
+      <p class="overline" data-reveal>The tonight deck</p>
+      <h2 class="title" data-reveal>Only what your shelf can actually make.</h2>
+      <p class="serif-body" data-reveal>Every suggestion is checked against your inventory before it reaches you — bottle by bottle, staple by staple. A drink you can’t pour is worse than one fewer suggestion, so Flanagan simply doesn’t show it.</p>
+      <p class="serif-body" data-reveal>And when you’re close, it says so. The one-bottle-away ledger ranks which single purchase would unlock the most new drinks — so the next bottle you buy is the one that earns its shelf space.</p>
+    </div>
+    <div class="feature__aside" data-reveal>
+      <div class="ledger-card">
+        <p class="m-overline">One bottle away</p>
+        <div class="ledger-card__row">
+          <span class="ledger-card__numeral">6</span>
+          <span class="ledger-card__label">Sweet vermouth<em>unlocks six drinks</em></span>
+        </div>
+        <div class="ledger-card__row">
+          <span class="ledger-card__numeral">5</span>
+          <span class="ledger-card__label">Green Chartreuse<em>unlocks five drinks</em></span>
+        </div>
+        <div class="ledger-card__row">
+          <span class="ledger-card__numeral">3</span>
+          <span class="ledger-card__label">Angostura bitters<em>unlocks three drinks</em></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="shell"><div class="ornament" role="presentation"><span class="ornament__diamond"></span></div></div>
+
+  <!-- ========================== BARKEEP ========================== -->
+  <section class="feature feature--flip shell">
+    <div class="feature__copy">
+      <p class="overline" data-reveal>Ask the barkeep</p>
+      <h2 class="title" data-reveal>“Something bitter and stirred.”</h2>
+      <p class="serif-body" data-reveal>Describe what you feel like, in your own words. The barkeep answers in plain language — and only from what’s on your shelf. No suggestions for bottles you don’t own; no shopping list disguised as a recipe.</p>
+      <ul class="chips" data-reveal aria-label="Example requests">
+        <li class="chip">Something fresh and citrusy</li>
+        <li class="chip">Short, strong and spirit-forward</li>
+        <li class="chip">Use up my rum</li>
+        <li class="chip">Surprise me</li>
+      </ul>
+    </div>
+
+    <!-- Phone mockup 2 — Barkeep -->
+    <figure class="feature__phone" data-reveal aria-label="The barkeep screen: you ask for something bitter and stirred, and it answers with a Negroni made from your own shelf.">
+      <div class="phone">
+        <div class="phone__screen" aria-hidden="true">
+          <div class="m-status"><span>22:03</span><span class="m-status__glyphs">•••</span></div>
+          <p class="m-overline m-overline--center">Barkeep</p>
+
+          <div class="ask">
+            <p class="ask__bubble">Something bitter and stirred</p>
+            <div class="ask__answer">
+              <p class="ask__name">Negroni</p>
+              <p class="ask__body">Equal parts, stirred over ice — everything’s on your shelf.</p>
+              <p class="ask__spec">gin · campari · sweet vermouth</p>
+            </div>
+            <div class="ask__answer ask__answer--faint">
+              <p class="ask__name">Boulevardier</p>
+              <p class="ask__body">The same idea, but warmer — rye where the gin was.</p>
+            </div>
+          </div>
+
+          <div class="ask__input">
+            <span>Ask the barkeep…</span>
+            <span class="ask__send"></span>
+          </div>
+        </div>
+      </div>
+      <figcaption class="visually-hidden">A hand-drawn preview of the barkeep screen.</figcaption>
+    </figure>
+  </section>
+
+  <div class="shell"><div class="ornament" role="presentation"><span class="ornament__diamond"></span></div></div>
+
+  <!-- ========================== THE SHELF ========================== -->
+  <section class="feature shell">
+    <div class="feature__copy">
+      <p class="overline" data-reveal>The shelf</p>
+      <h2 class="title" data-reveal>Your bar, kept without the bookkeeping.</h2>
+      <p class="serif-body" data-reveal>Every bottle carries a fill gauge and a category; a swipe marks one empty when it runs dry. Staples — the limes, the sugar, the soda water — live alongside, because they decide whether a drink is actually possible.</p>
+      <p class="serif-body" data-reveal>Adding is the fast part. Scan a barcode, or point the camera at the whole shelf and let Flanagan do the counting — it reads the labels, you tick what to keep.</p>
+    </div>
+
+    <!-- Phone mockup 3 — Bar inventory -->
+    <figure class="feature__phone" data-reveal aria-label="The bar screen: a list of bottles with category dots and fill gauges, one of them running low.">
+      <div class="phone">
+        <div class="phone__screen" aria-hidden="true">
+          <div class="m-status"><span>18:26</span><span class="m-status__glyphs">•••</span></div>
+          <p class="m-overline">Your bar · 23 bottles</p>
+
+          <div class="bar-list">
+            <div class="bar-row">
+              <span class="bar-row__dot" style="--dot: var(--cat-gin)"></span>
+              <span class="bar-row__text"><strong>Tanqueray No. Ten</strong><em>gin · 70 cl</em></span>
+              <span class="bar-row__gauge"><span style="--fill: 85%"></span></span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-row__dot" style="--dot: var(--cat-whisky)"></span>
+              <span class="bar-row__text"><strong>Rittenhouse Rye</strong><em>whisky · 75 cl</em></span>
+              <span class="bar-row__gauge"><span style="--fill: 60%"></span></span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-row__dot" style="--dot: var(--cat-amaro)"></span>
+              <span class="bar-row__text"><strong>Campari</strong><em>amaro · 70 cl</em></span>
+              <span class="bar-row__gauge"><span style="--fill: 35%"></span></span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-row__dot" style="--dot: var(--cat-vermouth)"></span>
+              <span class="bar-row__text"><strong>Cocchi di Torino</strong><em>vermouth · 75 cl<span class="bar-row__low"> — running low</span></em></span>
+              <span class="bar-row__gauge"><span class="bar-row__gauge--low" style="--fill: 12%"></span></span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-row__dot" style="--dot: var(--cat-rum)"></span>
+              <span class="bar-row__text"><strong>Smith &amp; Cross</strong><em>rum · 70 cl</em></span>
+              <span class="bar-row__gauge"><span style="--fill: 72%"></span></span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-row__dot" style="--dot: var(--cat-liqueur)"></span>
+              <span class="bar-row__text"><strong>Cointreau</strong><em>liqueur · 50 cl</em></span>
+              <span class="bar-row__gauge"><span style="--fill: 48%"></span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption class="visually-hidden">A hand-drawn preview of the bar inventory screen.</figcaption>
+    </figure>
+  </section>
+
+  <div class="shell"><div class="ornament" role="presentation"><span class="ornament__diamond"></span></div></div>
+
+  <!-- ========================== NOTEBOOK ========================== -->
+  <section class="notebook shell">
+    <p class="notebook__no flourish" data-reveal aria-hidden="true">No. 12</p>
+    <div class="notebook__copy">
+      <p class="overline" data-reveal>The notebook</p>
+      <h2 class="title" data-reveal>Every recipe, in one hand.</h2>
+      <p class="serif-body" data-reveal>Suggestions you save and recipes you write yourself land in the same notebook, in the same format, numbered like the pages of a menu. Photograph a page from a book, a menu, a screenshot — Flanagan reads it and fills the editor for you.</p>
+      <p class="serif-body" data-reveal>Millilitres or ounces, at a toggle. A dash stays a dash.</p>
+    </div>
+  </section>
+
+  <div class="shell"><div class="ornament" role="presentation"><span class="ornament__diamond"></span></div></div>
+
+  <!-- ========================= HOW IT WORKS ========================= -->
+  <section class="steps shell">
+    <p class="overline overline--center" data-reveal>How it works</p>
+    <div class="steps__grid">
+      <div class="step" data-reveal style="--i:0">
+        <p class="step__n">01</p>
+        <h3 class="heading">Stock the shelf</h3>
+        <p class="body">Scan barcodes one by one, or photograph the whole shelf and tick what to add. Staples take a minute.</p>
+      </div>
+      <div class="step" data-reveal style="--i:1">
+        <p class="step__n">02</p>
+        <h3 class="heading">Ask what’s possible</h3>
+        <p class="body">The tonight deck deals your makeable drinks; the barkeep answers anything you can put into words.</p>
+      </div>
+      <div class="step" data-reveal style="--i:2">
+        <p class="step__n">03</p>
+        <h3 class="heading">Pour</h3>
+        <p class="body">The recipe arrives in your units, joins the notebook, and the shelf keeps itself honest as bottles run down.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= CLOSING CTA ========================= -->
+  <section class="closing shell" id="closing">
+    <div class="ornament" role="presentation"><span class="ornament__diamond"></span></div>
+    <p class="flourish closing__flourish" data-reveal>The good bottle you’re saving is still just sitting there.</p>
+    <h2 class="title closing__title" data-reveal>Find out what it can make.</h2>
+    <div data-reveal>
+      <a class="button button--primary" href="https://github.com/KevinThibaut89/Flanagan">Coming to the App&nbsp;Store</a>
+    </div>
+    <p class="small closing__note" data-reveal>Signing in takes an email and a six-digit code. No passwords.</p>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="shell site-footer__row">
+    <div class="site-footer__brand">
+      <svg class="monogram" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true" focusable="false">
+        <circle cx="16" cy="16" r="15" fill="none" stroke="var(--accent)" stroke-width="1"/>
+        <text x="16" y="16.5" text-anchor="middle" dominant-baseline="central" class="monogram__f">F</text>
+      </svg>
+      <span class="wordmark">Flanagan</span>
+    </div>
+    <p class="small site-footer__colophon">© 2026&ensp;·&ensp;Made for the home bar.</p>
+  </div>
+</footer>
+
+<script src="main.js" defer></script>
+</body>
+</html>
