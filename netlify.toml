@@ -1,0 +1,4 @@
+# The marketing site is a hand-built static page — no build step.
+[build]
+  publish = "website"
+  command = ""
