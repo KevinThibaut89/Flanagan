@@ -25,7 +25,14 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
+<<<<<<< Updated upstream
         "android.permission.CAMERA"
+=======
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+>>>>>>> Stashed changes
       ]
     },
     "plugins": [
