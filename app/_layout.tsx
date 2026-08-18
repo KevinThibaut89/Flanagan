@@ -13,6 +13,7 @@ import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces/600SemiBold';
 import { Loading } from '../src/components/ui';
 import { AuthProvider, useAuth } from '../src/providers/auth';
 import { PreferencesProvider } from '../src/providers/preferences';
+import { PurchasesProvider } from '../src/providers/purchases';
 import {
   ThemeProvider,
   loadThemePreference,
@@ -105,9 +106,11 @@ export default function RootLayout() {
       <ThemeProvider initialPreference={themePreference}>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <PreferencesProvider>
-              <AuthGate />
-            </PreferencesProvider>
+            <PurchasesProvider>
+              <PreferencesProvider>
+                <AuthGate />
+              </PreferencesProvider>
+            </PurchasesProvider>
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>
