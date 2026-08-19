@@ -82,13 +82,19 @@ const CATEGORY_MAP: Array<[string, string]> = [
   ['en:calvados', 'calvados'],
   ['en:pisco', 'pisco'],
   ['en:grappas', 'grappa'],
+  ['en:kirsch', 'kirsch'],
+  ['en:eaux-de-vie', 'eau-de-vie'],
   ['en:brandies', 'brandy'],
 
   // Other spirits
   ['en:vodkas', 'vodka'],
   ['en:absinthes', 'absinthe'],
   ['en:pastis', 'pastis'],
+  ['en:ouzo', 'ouzo'],
+  ['en:raki', 'raki'],
   ['en:aquavits', 'aquavit'],
+  ['en:soju', 'soju'],
+  ['en:baijiu', 'baijiu'],
 
   // Liqueurs & bitters
   ['en:orange-liqueurs', 'orange-liqueur'],
@@ -96,8 +102,13 @@ const CATEGORY_MAP: Array<[string, string]> = [
   ['en:cream-liqueurs', 'irish-cream'],
   ['en:amaretto', 'amaretto'],
   ['en:limoncellos', 'limoncello'],
+  ['en:umeshu', 'umeshu'],
   ['en:bitters', 'bitters'],
-  ['en:liqueurs', 'orange-liqueur'],
+  // No `en:liqueurs` catch-all. It used to fall through to orange liqueur,
+  // which was a coin flip when the vocabulary held six liqueurs and is a
+  // confident wrong answer now that it holds seventy — and a wrong
+  // ingredient_id quietly corrupts makeability. Returning null instead drops
+  // the scanner into the picker they were about to review anyway.
 
   // Fortified & aromatised wine
   ['en:vermouths', 'vermouth'],
@@ -112,6 +123,10 @@ const CATEGORY_MAP: Array<[string, string]> = [
   ['en:white-wines', 'white-wine'],
   ['en:red-wines', 'red-wine'],
   ['en:rose-wines', 'rose-wine'],
+  ['en:sakes', 'sake'],
+  // Above en:beers: OFF files cider under alcoholic-beverages today, but the
+  // generic beer bucket is one taxonomy edit away from swallowing it.
+  ['en:ciders', 'cider'],
   ['en:beers', 'lager'],
 
   // Mixers & non-alcoholic

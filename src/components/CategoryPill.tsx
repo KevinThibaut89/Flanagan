@@ -14,6 +14,8 @@ const KIND_LABELS: Record<IngredientKind, string> = {
   fortified: 'Fortified',
   wine: 'Wine',
   beer: 'Beer',
+  sake: 'Sake',
+  cider: 'Cider',
   juice: 'Juice',
   syrup: 'Syrup',
   mixer: 'Mixer',
@@ -24,7 +26,7 @@ const KIND_LABELS: Record<IngredientKind, string> = {
 /** Maps an ingredient kind to its accent colour, falling back to a neutral. */
 export function colorForKind(
   kind: IngredientKind | null | undefined,
-  categoryColors: Record<string, string>,
+  categoryColors: Record<IngredientKind, string>,
 ): string {
   if (!kind) return categoryColors.other;
   return categoryColors[kind] ?? categoryColors.other;
@@ -37,7 +39,10 @@ export function useColorForKind(): (kind: IngredientKind | null | undefined) => 
 }
 
 export function labelForKind(kind: IngredientKind | null | undefined): string {
-  return kind ? KIND_LABELS[kind] : 'Unsorted';
+  // The `??` is unreachable for a current build, but a user on an older one
+  // receives kinds added to the database since they last updated, and an empty
+  // pill is worse than a vague one.
+  return (kind && KIND_LABELS[kind]) ?? 'Unsorted';
 }
 
 export function CategoryPill({ kind }: { kind: IngredientKind | null | undefined }) {

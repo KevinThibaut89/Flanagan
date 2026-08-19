@@ -62,7 +62,7 @@ display concern.
 ## Setup
 
 The Supabase project (`qhmovlrsmwlkfgypwglr`, eu-west-2) is already provisioned:
-migrations applied, 177 ingredients seeded, row-level security on every table,
+migrations applied, 412 ingredients seeded, row-level security on every table,
 and the edge functions deployed. Four things remain.
 
 ### 1. The OpenAI key

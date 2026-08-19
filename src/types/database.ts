@@ -548,6 +548,8 @@ export type Database = {
         | "fortified"
         | "wine"
         | "beer"
+        | "sake"
+        | "cider"
         | "juice"
         | "syrup"
         | "mixer"
@@ -717,6 +719,8 @@ export const Constants = {
         "fortified",
         "wine",
         "beer",
+        "sake",
+        "cider",
         "juice",
         "syrup",
         "mixer",

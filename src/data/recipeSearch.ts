@@ -1,4 +1,5 @@
 import type { IngredientIndex } from './ingredients';
+import { normalize } from '../lib/text';
 import type { RecipeWithIngredients } from './recipes';
 import { METHOD_LABELS } from '../lib/recipeLabels';
 import type { Ingredient, RecipeMethod } from '../types/database';
@@ -13,19 +14,10 @@ import type { Ingredient, RecipeMethod } from '../types/database';
 // Text search
 // ---------------------------------------------------------------------------
 
-/** Lowercase, diacritics stripped, whitespace trimmed — so "Añejo" finds "anejo". */
-export function normalize(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/\p{M}+/gu, '')
-    .toLowerCase()
-    .trim();
-}
-
-/** Split a query into the terms that all have to match. */
-export function searchTerms(query: string): string[] {
-  return normalize(query).split(/\s+/).filter(Boolean);
-}
+// `normalize` and `searchTerms` live in ../lib/text so the ingredient index can
+// share them. Re-exported here because the recipe screens import them from this
+// module, and where they are defined is not those screens' business.
+export { normalize, searchTerms } from '../lib/text';
 
 /**
  * Everything on a recipe worth searching, folded into one normalized string.

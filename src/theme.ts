@@ -1,5 +1,7 @@
 import type { ViewStyle } from 'react-native';
 
+import type { IngredientKind } from './types/database';
+
 /**
  * Two palettes, one voice. The dark theme is the native one — a bar app is
  * used in dim rooms at night — and the light theme is its daylight cousin:
@@ -80,20 +82,21 @@ export const lightColors: ThemeColors = {
 };
 
 // Category accents, used for bottle type pills and recipe base-spirit tags.
-export const darkCategoryColors: Record<string, string> = {
-  gin: '#8FB8C9',
-  whisky: '#C08A4A',
-  rum: '#B5763F',
-  vodka: '#B9C3C7',
-  tequila: '#C3B36A',
-  mezcal: '#9A8B55',
-  brandy: '#B06A3E',
+//
+// Keyed by `ingredient_kind`, which is the only thing `colorForKind` ever looks
+// up. Typed as a total record so the next enum value added to the database is a
+// compile error here rather than a silently grey dot in the picker.
+export const darkCategoryColors: Record<IngredientKind, string> = {
+  spirit: '#C08A4A',
   liqueur: '#B07FA8',
   vermouth: '#A46B72',
   amaro: '#8B5A52',
   bitters: '#9C4A42',
+  fortified: '#A4685C',
   wine: '#8E4A5C',
   beer: '#C9A24A',
+  sake: '#C7CBB0',
+  cider: '#D0B45E',
   mixer: '#6E8B93',
   syrup: '#B08A5E',
   juice: '#C08658',
@@ -102,20 +105,17 @@ export const darkCategoryColors: Record<string, string> = {
 };
 
 /** The same hues pulled down so they still read as ink on parchment. */
-export const lightCategoryColors: Record<string, string> = {
-  gin: '#4F8AA1',
-  whisky: '#9A6A2E',
-  rum: '#8F5A2A',
-  vodka: '#6F8189',
-  tequila: '#8E7E33',
-  mezcal: '#6F6335',
-  brandy: '#8C4F2A',
+export const lightCategoryColors: Record<IngredientKind, string> = {
+  spirit: '#9A6A2E',
   liqueur: '#8A5A82',
   vermouth: '#8A4E57',
   amaro: '#744339',
   bitters: '#8A3B33',
+  fortified: '#83473C',
   wine: '#7A3A4B',
   beer: '#8F6E1E',
+  sake: '#7E8560',
+  cider: '#9C7A24',
   mixer: '#4F6E77',
   syrup: '#8A6540',
   juice: '#9A6538',
@@ -126,7 +126,7 @@ export const lightCategoryColors: Record<string, string> = {
 export interface Theme {
   scheme: ColorScheme;
   colors: ThemeColors;
-  categoryColors: Record<string, string>;
+  categoryColors: Record<IngredientKind, string>;
   /**
    * The one gradient in the app: copper sheen on primary CTAs. Everything else
    * sits on flat surfaces — flat is what expensive looks like in the dark.

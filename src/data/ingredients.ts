@@ -2,11 +2,12 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { supabase } from '../lib/supabase';
+import { normalize } from '../lib/text';
 import type { Ingredient } from '../types/database';
 import { queryKeys } from './keys';
 
 /**
- * The whole vocabulary is a couple of hundred small rows, so it is fetched once
+ * The whole vocabulary is a few hundred small rows, so it is fetched once
  * and kept for the session. Autocomplete, category pills, and makeability
  * checks all read from this one cache entry rather than hitting the network.
  */
@@ -34,6 +35,15 @@ export interface IngredientIndex {
   /** Ingredient ids satisfied by owning `id` — itself plus all its ancestors. */
   coveredBy: (id: string) => string[];
   search: (term: string, limit?: number) => Ingredient[];
+}
+
+/** One row's searchable text, folded once when the index is built. */
+interface SearchRow {
+  row: Ingredient;
+  name: string;
+  /** The slug with hyphens as spaces, so it reads like the name. */
+  slug: string;
+  aliases: string[];
 }
 
 export function useIngredientIndex(): { index: IngredientIndex | null; isLoading: boolean } {
@@ -67,21 +77,37 @@ export function useIngredientIndex(): { index: IngredientIndex | null; isLoading
       return [id, ...ancestorsOf(id).map((row) => row.id)];
     }
 
+    // Folded once per fetch rather than once per keystroke. With four hundred
+    // rows carrying a thousand aliases between them, re-lowercasing the whole
+    // vocabulary on every character typed was showing up as lag.
+    const searchRows: SearchRow[] = rows.map((row) => ({
+      row,
+      name: normalize(row.name),
+      // Hyphens become spaces so "poire williams" reaches poire-williams.
+      slug: normalize(row.slug).replace(/-/g, ' '),
+      aliases: row.aliases.map(normalize),
+    }));
+
     function search(term: string, limit = 12): Ingredient[] {
-      const needle = term.trim().toLowerCase();
+      // normalize also lowercases and trims, and strips diacritics on top —
+      // "palinka" has to find "Pálinka" without anyone hand-writing an alias
+      // for every accented name in the vocabulary.
+      const needle = normalize(term);
       if (!needle) return [];
 
-      const scored = rows
-        .map((row) => {
-          const name = row.name.toLowerCase();
-          if (name === needle) return { row, score: 0 };
-          if (name.startsWith(needle)) return { row, score: 1 };
-          if (row.aliases.some((alias) => alias.toLowerCase() === needle)) return { row, score: 2 };
-          if (row.aliases.some((alias) => alias.toLowerCase().startsWith(needle)))
-            return { row, score: 3 };
-          if (name.includes(needle)) return { row, score: 4 };
-          if (row.aliases.some((alias) => alias.toLowerCase().includes(needle)))
-            return { row, score: 5 };
+      const scored = searchRows
+        .map((entry) => {
+          const { name, slug, aliases } = entry;
+          // An exact slug hit is as unambiguous as an exact name hit; a slug
+          // *substring* is the weakest signal here, since the slug is derived
+          // from the name, so it sits below everything else.
+          if (name === needle || slug === needle) return { row: entry.row, score: 0 };
+          if (name.startsWith(needle)) return { row: entry.row, score: 1 };
+          if (aliases.some((alias) => alias === needle)) return { row: entry.row, score: 2 };
+          if (aliases.some((alias) => alias.startsWith(needle))) return { row: entry.row, score: 3 };
+          if (name.includes(needle)) return { row: entry.row, score: 4 };
+          if (aliases.some((alias) => alias.includes(needle))) return { row: entry.row, score: 5 };
+          if (slug.includes(needle)) return { row: entry.row, score: 6 };
           return null;
         })
         .filter((entry): entry is { row: Ingredient; score: number } => entry !== null)
