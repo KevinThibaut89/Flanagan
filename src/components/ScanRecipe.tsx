@@ -12,6 +12,7 @@ import { Body, Flourish, Muted, PressableScale } from './ui';
 import type { ShelfMimeType } from '../data/identify';
 import { useReadRecipe, type ReadRecipe } from '../data/readRecipe';
 import { pickRecipePhoto, type PhotoSource } from '../data/recipePhotos';
+import { shrinkForModel } from '../lib/images';
 import { useTheme, useThemedStyles } from '../providers/theme';
 import { radius, spacing, typography, type Theme } from '../theme';
 
@@ -98,14 +99,15 @@ export function ScanRecipe({
   async function pick(source: PhotoSource) {
     let uri: string | null = null;
     try {
-      const picked = await pickRecipePhoto(source, { base64: true, quality: PAGE_PHOTO_QUALITY });
-      if (!picked?.base64) return;
+      const picked = await pickRecipePhoto(source, { quality: PAGE_PHOTO_QUALITY });
+      if (!picked) return;
       uri = picked.uri;
       setStatus({ kind: 'reading', uri });
 
+      const shrunk = await shrinkForModel(picked.uri, picked.size);
       const result = await read.mutateAsync({
-        base64: picked.base64,
-        mimeType: asMimeType(picked.mimeType),
+        base64: shrunk.base64,
+        mimeType: asMimeType(shrunk.mimeType),
       });
 
       if (result.recipes.length === 0) {
