@@ -215,15 +215,30 @@ export default function RecipesScreen() {
                 : `${recipes?.length ?? 0} saved · ${makeableCount} you can make now`}
             </Muted>
           </View>
-          <PressableScale
-            onPress={() => router.push('/recipe/new')}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Write a recipe"
-            style={styles.headerIcon}
-          >
-            <MaterialCommunityIcons name="plus" size={22} color={colors.textMuted} />
-          </PressableScale>
+          <View style={styles.headerIcons}>
+            <PressableScale
+              onPress={() => router.push('/library')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Browse the house book"
+              style={styles.headerIcon}
+            >
+              <MaterialCommunityIcons
+                name="book-open-page-variant-outline"
+                size={22}
+                color={colors.textMuted}
+              />
+            </PressableScale>
+            <PressableScale
+              onPress={() => router.push('/recipe/new')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Write a recipe"
+              style={styles.headerIcon}
+            >
+              <MaterialCommunityIcons name="plus" size={22} color={colors.textMuted} />
+            </PressableScale>
+          </View>
         </View>
 
         <SearchField
@@ -374,6 +389,10 @@ const styles = StyleSheet.create({
   },
   headerText: {
     gap: spacing.xs,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    gap: spacing.lg,
   },
   headerIcon: {
     paddingTop: spacing.sm,

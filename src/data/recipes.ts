@@ -30,6 +30,8 @@ export interface RecipeDraft {
   servings: number;
   ai_prompt?: string | null;
   ai_model?: string | null;
+  /** The house-book row this came from, so saves count toward taste. */
+  library_recipe_id?: string | null;
   ingredients: RecipeIngredientDraft[];
 }
 

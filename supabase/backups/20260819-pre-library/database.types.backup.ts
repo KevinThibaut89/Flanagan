@@ -261,216 +261,6 @@ export type Database = {
           },
         ]
       }
-      library_asks: {
-        Row: {
-          created_at: string
-          embedding: string | null
-          id: number
-          query: string
-          recipe_id: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          embedding?: string | null
-          id?: never
-          query: string
-          recipe_id: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          embedding?: string | null
-          id?: never
-          query?: string
-          recipe_id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "library_asks_recipe_id_fkey"
-            columns: ["recipe_id"]
-            isOneToOne: false
-            referencedRelation: "library_recipes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      library_feedback: {
-        Row: {
-          created_at: string
-          recipe_id: string
-          updated_at: string
-          user_id: string
-          vote: number
-        }
-        Insert: {
-          created_at?: string
-          recipe_id: string
-          updated_at?: string
-          user_id: string
-          vote: number
-        }
-        Update: {
-          created_at?: string
-          recipe_id?: string
-          updated_at?: string
-          user_id?: string
-          vote?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "library_feedback_recipe_id_fkey"
-            columns: ["recipe_id"]
-            isOneToOne: false
-            referencedRelation: "library_recipes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      library_recipe_ingredients: {
-        Row: {
-          amount_display: number | null
-          amount_ml: number | null
-          free_text: string | null
-          id: string
-          ingredient_id: string | null
-          is_garnish: boolean
-          is_optional: boolean
-          note: string | null
-          position: number
-          recipe_id: string
-          unit_display: Database["public"]["Enums"]["measure_unit"] | null
-        }
-        Insert: {
-          amount_display?: number | null
-          amount_ml?: number | null
-          free_text?: string | null
-          id?: string
-          ingredient_id?: string | null
-          is_garnish?: boolean
-          is_optional?: boolean
-          note?: string | null
-          position?: number
-          recipe_id: string
-          unit_display?: Database["public"]["Enums"]["measure_unit"] | null
-        }
-        Update: {
-          amount_display?: number | null
-          amount_ml?: number | null
-          free_text?: string | null
-          id?: string
-          ingredient_id?: string | null
-          is_garnish?: boolean
-          is_optional?: boolean
-          note?: string | null
-          position?: number
-          recipe_id?: string
-          unit_display?: Database["public"]["Enums"]["measure_unit"] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "library_recipe_ingredients_ingredient_id_fkey"
-            columns: ["ingredient_id"]
-            isOneToOne: false
-            referencedRelation: "ingredients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "library_recipe_ingredients_recipe_id_fkey"
-            columns: ["recipe_id"]
-            isOneToOne: false
-            referencedRelation: "library_recipes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      library_recipes: {
-        Row: {
-          abv_estimate: number | null
-          ai_model: string
-          base_ingredient_id: string | null
-          created_at: string
-          embed_model: string | null
-          embed_text: string
-          embedded_at: string | null
-          embedding: string | null
-          fingerprint: string
-          flavor_tags: string[]
-          garnish: string | null
-          glass: string | null
-          ice: Database["public"]["Enums"]["recipe_ice"] | null
-          id: string
-          instructions: string[]
-          last_suggested_at: string
-          method: Database["public"]["Enums"]["recipe_method"] | null
-          prompt_version: number | null
-          rationale: string | null
-          required_ingredient_ids: string[]
-          servings: number
-          times_suggested: number
-          title: string
-        }
-        Insert: {
-          abv_estimate?: number | null
-          ai_model: string
-          base_ingredient_id?: string | null
-          created_at?: string
-          embed_model?: string | null
-          embed_text: string
-          embedded_at?: string | null
-          embedding?: string | null
-          fingerprint: string
-          flavor_tags?: string[]
-          garnish?: string | null
-          glass?: string | null
-          ice?: Database["public"]["Enums"]["recipe_ice"] | null
-          id?: string
-          instructions?: string[]
-          last_suggested_at?: string
-          method?: Database["public"]["Enums"]["recipe_method"] | null
-          prompt_version?: number | null
-          rationale?: string | null
-          required_ingredient_ids?: string[]
-          servings?: number
-          times_suggested?: number
-          title: string
-        }
-        Update: {
-          abv_estimate?: number | null
-          ai_model?: string
-          base_ingredient_id?: string | null
-          created_at?: string
-          embed_model?: string | null
-          embed_text?: string
-          embedded_at?: string | null
-          embedding?: string | null
-          fingerprint?: string
-          flavor_tags?: string[]
-          garnish?: string | null
-          glass?: string | null
-          ice?: Database["public"]["Enums"]["recipe_ice"] | null
-          id?: string
-          instructions?: string[]
-          last_suggested_at?: string
-          method?: Database["public"]["Enums"]["recipe_method"] | null
-          prompt_version?: number | null
-          rationale?: string | null
-          required_ingredient_ids?: string[]
-          servings?: number
-          times_suggested?: number
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "library_recipes_base_ingredient_id_fkey"
-            columns: ["base_ingredient_id"]
-            isOneToOne: false
-            referencedRelation: "ingredients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       plan_limits: {
         Row: {
           key: string
@@ -653,7 +443,6 @@ export type Database = {
           image_url: string | null
           instructions: string[]
           is_favorite: boolean
-          library_recipe_id: string | null
           method: Database["public"]["Enums"]["recipe_method"] | null
           notes: string | null
           servings: number
@@ -676,7 +465,6 @@ export type Database = {
           image_url?: string | null
           instructions?: string[]
           is_favorite?: boolean
-          library_recipe_id?: string | null
           method?: Database["public"]["Enums"]["recipe_method"] | null
           notes?: string | null
           servings?: number
@@ -699,7 +487,6 @@ export type Database = {
           image_url?: string | null
           instructions?: string[]
           is_favorite?: boolean
-          library_recipe_id?: string | null
           method?: Database["public"]["Enums"]["recipe_method"] | null
           notes?: string | null
           servings?: number
@@ -714,13 +501,6 @@ export type Database = {
             columns: ["base_ingredient_id"]
             isOneToOne: false
             referencedRelation: "ingredients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recipes_library_recipe_id_fkey"
-            columns: ["library_recipe_id"]
-            isOneToOne: false
-            referencedRelation: "library_recipes"
             referencedColumns: ["id"]
           },
         ]
@@ -747,108 +527,6 @@ export type Database = {
       effective_tier: {
         Args: { p_user_id: string }
         Returns: Database["public"]["Enums"]["plan_tier"]
-      }
-      library_answer: {
-        Args: {
-          p_count?: number
-          p_embedding: string
-          p_min_similarity?: number
-          p_user_id: string
-        }
-        Returns: {
-          abv_estimate: number
-          ai_model: string
-          base_ingredient_id: string
-          created_at: string
-          flavor_tags: string[]
-          garnish: string
-          glass: string
-          ice: Database["public"]["Enums"]["recipe_ice"]
-          id: string
-          ingredients: Json
-          instructions: string[]
-          makeable: boolean
-          method: Database["public"]["Enums"]["recipe_method"]
-          rationale: string
-          required_ingredient_ids: string[]
-          servings: number
-          similarity: number
-          times_suggested: number
-          title: string
-        }[]
-      }
-      library_browse: {
-        Args: {
-          p_limit?: number
-          p_offset?: number
-          p_only_makeable?: boolean
-          p_sort?: string
-        }
-        Returns: {
-          abv_estimate: number
-          ai_model: string
-          base_ingredient_id: string
-          created_at: string
-          flavor_tags: string[]
-          garnish: string
-          glass: string
-          ice: Database["public"]["Enums"]["recipe_ice"]
-          id: string
-          ingredients: Json
-          instructions: string[]
-          makeable: boolean
-          method: Database["public"]["Enums"]["recipe_method"]
-          rationale: string
-          required_ingredient_ids: string[]
-          servings: number
-          times_suggested: number
-          title: string
-        }[]
-      }
-      library_search: {
-        Args: {
-          p_count?: number
-          p_embedding: string
-          p_min_similarity?: number
-          p_only_makeable?: boolean
-          p_user_id: string
-        }
-        Returns: {
-          abv_estimate: number
-          ai_model: string
-          base_ingredient_id: string
-          created_at: string
-          flavor_tags: string[]
-          garnish: string
-          glass: string
-          ice: Database["public"]["Enums"]["recipe_ice"]
-          id: string
-          ingredients: Json
-          instructions: string[]
-          makeable: boolean
-          method: Database["public"]["Enums"]["recipe_method"]
-          rationale: string
-          required_ingredient_ids: string[]
-          servings: number
-          similarity: number
-          times_suggested: number
-          title: string
-        }[]
-      }
-      library_taste_profile: { Args: { p_user_id: string }; Returns: Json }
-      library_upsert: {
-        Args: {
-          p_model: string
-          p_prompt_version: number
-          p_query: string
-          p_query_embedding?: string
-          p_recipes: Json
-          p_user_id: string
-        }
-        Returns: {
-          id: string
-          inserted: boolean
-        }[]
       }
       my_makeable_recipe_ids: {
         Args: never
@@ -1085,7 +763,6 @@ export const Constants = {
 // Everything above this line is generated. Regenerate with:
 //
 //   supabase gen types typescript --project-id qhmovlrsmwlkfgypwglr
-//   (or the Supabase MCP generate_typescript_types tool)
 //
 // and then re-append this block, which gives the generated shapes the short
 // names the app imports.
@@ -1099,9 +776,6 @@ export type Recipe = Tables<'recipes'>
 export type RecipeIngredient = Tables<'recipe_ingredients'>
 export type AiUsage = Tables<'ai_usage'>
 export type PlanLimit = Tables<'plan_limits'>
-export type LibraryRecipe = Tables<'library_recipes'>
-export type LibraryRecipeIngredient = Tables<'library_recipe_ingredients'>
-export type LibraryFeedback = Tables<'library_feedback'>
 
 export type BottleInsert = TablesInsert<'bottles'>
 export type BottleUpdate = TablesUpdate<'bottles'>

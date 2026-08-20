@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import * as Haptics from 'expo-haptics';
 
 import { Button } from '../../src/components/Button';
 import { Chip } from '../../src/components/Chip';
@@ -22,11 +23,13 @@ import {
   Heading,
   Label,
   Muted,
+  PressableScale,
   Reveal,
   Screen,
   Title,
 } from '../../src/components/ui';
 import { useAvailableIngredientIds, useBottles } from '../../src/data/bottles';
+import { useMyLibraryFeedback, useVoteLibraryRecipe } from '../../src/data/feedback';
 import { isQuotaExceeded, remainingLabel, usePlan } from '../../src/data/plan';
 import { useSaveRecipe } from '../../src/data/recipes';
 import {
@@ -85,11 +88,11 @@ export default function AskScreen() {
     [bottles],
   );
 
-  function ask(text: string) {
+  function ask(text: string, { forceAi = false }: { forceAi?: boolean } = {}) {
     const trimmed = text.trim();
     if (!trimmed) return;
     setQuery(trimmed);
-    suggest.mutate(trimmed);
+    suggest.mutate({ query: trimmed, forceAi });
   }
 
   // The month's asks ran out: offer Plus straight away, once per exhaustion,
@@ -190,6 +193,16 @@ export default function AskScreen() {
 
           {result && result.recipes.length > 0 ? (
             <Reveal style={styles.results}>
+              {result.from_library ? (
+                <View style={styles.libraryNote}>
+                  <MaterialCommunityIcons name="book-open-page-variant-outline" size={16} color={colors.accent} />
+                  <Muted style={styles.libraryNoteText}>
+                    From the house book — drinks the Barkeep has served before for an ask like
+                    this, and that you can make now. It didn’t cost an ask.
+                  </Muted>
+                </View>
+              ) : null}
+
               {result.recipes.map((recipe, i) => (
                 <SuggestionCard key={`${recipe.title}-${i}`} recipe={recipe} index={i} available={available} />
               ))}
@@ -202,10 +215,24 @@ export default function AskScreen() {
                 </Muted>
               ) : null}
 
+              {result.from_library ? (
+                <Button
+                  label="Ask the Barkeep anyway"
+                  variant="secondary"
+                  onPress={() => ask(query, { forceAi: true })}
+                  loading={suggest.isPending}
+                />
+              ) : null}
+
               <Button
                 label="See my recipes"
                 variant="ghost"
                 onPress={() => router.push('/recipes')}
+              />
+              <Button
+                label="Browse the house book"
+                variant="ghost"
+                onPress={() => router.push({ pathname: '/library', params: { q: query } })}
               />
             </Reveal>
           ) : null}
@@ -224,10 +251,25 @@ function SuggestionCard({
   index: number;
   available: Set<string>;
 }) {
+  const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const saveRecipe = useSaveRecipe();
   const [savedId, setSavedId] = useState<string | null>(null);
+
+  // Thumbs: attached to the suggestion's house-book row. Older function
+  // deployments (or a failed library write) send no id — no thumbs then.
+  const { data: votes } = useMyLibraryFeedback();
+  const voteMutation = useVoteLibraryRecipe();
+  const libraryId = recipe.library_recipe_id;
+  const vote = libraryId ? (votes?.get(libraryId) ?? null) : null;
+
+  function castVote(next: 1 | -1) {
+    if (!libraryId) return;
+    void Haptics.selectionAsync();
+    // Tapping the active thumb withdraws the vote.
+    voteMutation.mutate({ recipeId: libraryId, vote: vote === next ? null : next });
+  }
 
   const preview = useMemo(() => draftToPreview(recipe, index), [recipe, index]);
 
@@ -245,10 +287,44 @@ function SuggestionCard({
 
   return (
     <Card style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Heading>{recipe.title}</Heading>
-        {specs.length > 0 ? <Muted>{specs.join(' · ')}</Muted> : null}
+      <View style={styles.cardHeaderRow}>
+        <View style={styles.cardHeader}>
+          <Heading>{recipe.title}</Heading>
+          {specs.length > 0 ? <Muted>{specs.join(' · ')}</Muted> : null}
+        </View>
+        {libraryId ? (
+          <View style={styles.thumbs}>
+            <PressableScale
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={vote === 1 ? 'Remove like' : 'I like this suggestion'}
+              onPress={() => castVote(1)}
+            >
+              <MaterialCommunityIcons
+                name={vote === 1 ? 'thumb-up' : 'thumb-up-outline'}
+                size={20}
+                color={vote === 1 ? colors.accent : colors.textFaint}
+              />
+            </PressableScale>
+            <PressableScale
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={vote === -1 ? 'Remove dislike' : "Don't suggest this again"}
+              onPress={() => castVote(-1)}
+            >
+              <MaterialCommunityIcons
+                name={vote === -1 ? 'thumb-down' : 'thumb-down-outline'}
+                size={20}
+                color={vote === -1 ? colors.danger : colors.textFaint}
+              />
+            </PressableScale>
+          </View>
+        ) : null}
       </View>
+
+      {vote === -1 ? (
+        <Muted style={styles.voteNote}>Noted — the Barkeep won’t pour this one again.</Muted>
+      ) : null}
 
       <Flourish style={styles.rationale}>{recipe.rationale}</Flourish>
 
@@ -342,11 +418,35 @@ const makeStyles = ({ colors }: Theme) => StyleSheet.create({
   results: {
     gap: spacing.lg,
   },
+  libraryNote: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'flex-start',
+  },
+  libraryNoteText: {
+    flex: 1,
+    color: colors.accent,
+  },
   card: {
     gap: spacing.md,
   },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
   cardHeader: {
+    flex: 1,
     gap: 2,
+  },
+  thumbs: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    paddingTop: 4,
+  },
+  voteNote: {
+    fontSize: 12,
+    color: colors.danger,
   },
   rationale: {
     color: colors.textMuted,

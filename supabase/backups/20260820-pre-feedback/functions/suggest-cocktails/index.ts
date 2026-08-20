@@ -12,10 +12,8 @@ import {
   LIBRARY_RAG_TOP_K,
   LIBRARY_SEARCH_COUNT,
   formatLibraryBlock,
-  formatTasteBlock,
   libraryRowToDraft,
   type LibraryRow,
-  type TasteProfile,
 } from '../_shared/library.ts';
 import { checkQuota, recordUsage } from '../_shared/quota.ts';
 import { embedTextFor, requiredSlugs, toLibraryRow } from './library.ts';
@@ -199,9 +197,6 @@ Deno.serve(async (request: Request) => {
   let queryEmbedding: number[] | null = null;
   let hits: LibraryRow[] = [];
   let answers: LibraryRow[] = [];
-  // Their taste, for the prompt. The ranking side of taste (downvotes
-  // excluded, likes nudged up) lives inside the two RPCs themselves.
-  let taste: TasteProfile | null = null;
   try {
     [queryEmbedding] = await embedTexts(openai, admin, {
       userId: user.id,
@@ -209,7 +204,7 @@ Deno.serve(async (request: Request) => {
       texts: [query],
     });
 
-    const [answered, searched, tasted] = await Promise.all([
+    const [answered, searched] = await Promise.all([
       forceAi
         ? Promise.resolve({ data: [], error: null })
         : admin.rpc('library_answer', {
@@ -225,15 +220,11 @@ Deno.serve(async (request: Request) => {
         p_min_similarity: LIBRARY_RAG_MIN_SIMILARITY,
         p_only_makeable: false,
       }),
-      admin.rpc('library_taste_profile', { p_user_id: user.id }),
     ]);
     if (answered.error) throw answered.error;
     if (searched.error) throw searched.error;
     answers = (answered.data ?? []) as LibraryRow[];
     hits = (searched.data ?? []) as LibraryRow[];
-    // A failed profile must not take the library lists down with it.
-    if (tasted.error) console.warn('Taste profile failed; prompting without it', tasted.error);
-    else taste = (tasted.data ?? null) as TasteProfile | null;
 
     const show = (rows: LibraryRow[]) =>
       rows
@@ -307,14 +298,6 @@ Deno.serve(async (request: Request) => {
     system = system.replaceAll('{{LIBRARY}}', libraryBlock);
   } else {
     console.log(`ai_prompts "${PROMPT_KEY}" v${config.version} has no {{LIBRARY}} placeholder; not grounding.`);
-  }
-
-  // Their taste is the same kind of optional grounding as the house book: a
-  // prompt without the placeholder simply works without it.
-  if (system.includes('{{TASTE}}')) {
-    system = system.replaceAll('{{TASTE}}', formatTasteBlock(taste));
-  } else {
-    console.log(`ai_prompts "${PROMPT_KEY}" v${config.version} has no {{TASTE}} placeholder; not personalising.`);
   }
 
   let response;
@@ -401,9 +384,7 @@ Deno.serve(async (request: Request) => {
   }
 
   // ── Verify against the shelf ───────────────────────────────────────────────
-  // Kept raw here: the drafts are built last, after the house-book write has
-  // handed each recipe its library id.
-  let accepted: SuggestedRecipe[] = [];
+  const accepted: unknown[] = [];
   let rejected = 0;
 
   for (const recipe of parsed.recipes ?? []) {
@@ -419,7 +400,7 @@ Deno.serve(async (request: Request) => {
       continue;
     }
 
-    accepted.push(recipe);
+    accepted.push(toDraft(recipe, bySlug, query, config.model));
   }
 
   // ── Into the house book ────────────────────────────────────────────────────
@@ -428,12 +409,6 @@ Deno.serve(async (request: Request) => {
   // someone else's. A required line with an unknown slug is a hallucination
   // and that recipe is dropped. Awaited so the rows exist before the next ask,
   // but nothing in here may fail the answer.
-  //
-  // The upsert also names each recipe: library_upsert returns one row per
-  // input in input order, and that id is what a thumb on the ask screen
-  // attaches to. If the write fails, the ids stay unset and the client simply
-  // shows no thumbs — the answer itself is untouched.
-  const libraryIdOf = new Map<SuggestedRecipe, string>();
   try {
     const keepable = (parsed.recipes ?? []).filter((recipe) =>
       requiredSlugs(recipe).every((slug) => bySlug.has(slug)),
@@ -463,55 +438,15 @@ Deno.serve(async (request: Request) => {
         p_query_embedding: queryEmbedding,
       });
       if (upsertError) throw upsertError;
-      const rows = (upserted ?? []) as { id: string; inserted: boolean }[];
-      if (rows.length === keepable.length) {
-        keepable.forEach((recipe, i) => libraryIdOf.set(recipe, rows[i].id));
-      } else {
-        console.warn(
-          `library_upsert returned ${rows.length} rows for ${keepable.length} recipes; not attaching ids`,
-        );
-      }
-      const fresh = rows.filter((r) => r.inserted).length;
+      const fresh = ((upserted ?? []) as { inserted: boolean }[]).filter((r) => r.inserted).length;
       console.log(`suggest-cocktails: library +${fresh} new, ${keepable.length - fresh} repeats`);
     }
   } catch (cause) {
     console.warn('Library write failed; answer unaffected', cause);
   }
 
-  // The model can re-invent a drink this person already voted down — the
-  // fingerprint dedupe maps it straight back to the voted row. Drop those
-  // quietly (they are not "rejected": the bar could pour them; the person said
-  // no). A failed read degrades to no filtering, never to no answer.
-  try {
-    const ids = [...libraryIdOf.values()];
-    if (ids.length > 0) {
-      const { data: downvotes, error: downvotesError } = await admin
-        .from('library_feedback')
-        .select('recipe_id')
-        .eq('user_id', user.id)
-        .eq('vote', -1)
-        .in('recipe_id', ids);
-      if (downvotesError) throw downvotesError;
-      const banned = new Set((downvotes ?? []).map((row) => row.recipe_id));
-      if (banned.size > 0) {
-        accepted = accepted.filter((recipe) => {
-          const id = libraryIdOf.get(recipe);
-          if (id && banned.has(id)) {
-            console.log(`Dropped "${recipe.title}": this person voted it down before`);
-            return false;
-          }
-          return true;
-        });
-      }
-    }
-  } catch (cause) {
-    console.warn('Downvote check failed; answer unaffected', cause);
-  }
-
   return json({
-    recipes: accepted.map((recipe) =>
-      toDraft(recipe, bySlug, query, config.model, libraryIdOf.get(recipe) ?? null),
-    ),
+    recipes: accepted,
     rejected,
     from_library: false,
     message:
@@ -531,11 +466,8 @@ function toDraft(
   bySlug: Map<string, { id: string; slug: string }>,
   prompt: string,
   model: string,
-  libraryRecipeId: string | null,
 ) {
   return {
-    // Null when the house-book write failed; the client then shows no thumbs.
-    library_recipe_id: libraryRecipeId,
     title: recipe.title,
     rationale: recipe.rationale,
     source: 'ai' as const,

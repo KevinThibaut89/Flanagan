@@ -11,10 +11,14 @@ A personal mixology app: your bottles, and what they can make tonight.
   shelf, or by hand, plus the everyday staples (limes, syrup, soda) that decide
   whether a drink is actually possible.
 - **Ask** — describe what you feel like ("a gin-based dry cocktail with floral
-  notes") and get cocktails you can pour from what is in stock.
+  notes") and get cocktails you can pour from what is in stock. Asks the house
+  book first: a near-identical ask someone made before, whose drinks you can
+  make, is answered instantly and for free.
 - **Recipes** — suggestions you save and recipes you write yourself — typed
   in, or scanned off a book page, a menu or a screenshot — in one shared
-  format, filterable by what's makeable right now.
+  format, filterable by what's makeable right now. From its header, the
+  **House book**: every drink the Barkeep has ever made for anyone, browsable,
+  semantically searchable, and one tap from your own notebook.
 
 Expo (iOS + Android) · Supabase (Postgres, auth, edge functions) · OpenAI.
 
@@ -32,10 +36,14 @@ Expo app
   │                                ├── classify-bottle   → OpenAI
   │                                ├── identify-bottles  → OpenAI (vision)
   │                                ├── read-recipe       → OpenAI (vision)
-  │                                └── suggest-cocktails → OpenAI
-  │                                     (prompt + model from `ai_prompts`,
-  │                                      allowance from `plan_limits`,
-  │                                      every call logged to `ai_usage`)
+  │                                ├── suggest-cocktails → OpenAI
+  │                                │    (prompt + model from `ai_prompts`,
+  │                                │     allowance from `plan_limits`,
+  │                                │     every call logged to `ai_usage`;
+  │                                │     reads and writes the house book —
+  │                                │     `library_recipes` + pgvector)
+  │                                └── search-library    → OpenAI (embeddings)
+  │                                     (semantic search over the house book)
   └── react-native-purchases ───►  RevenueCat (paywall, Customer Center)
                                     └── webhook → revenuecat-webhook → profiles.tier
 ```
@@ -209,11 +217,17 @@ supabase functions deploy classify-bottle
 supabase functions deploy identify-bottles
 supabase functions deploy read-recipe
 supabase functions deploy suggest-cocktails
+supabase functions deploy search-library
 supabase functions deploy revenuecat-webhook --no-verify-jwt   # RevenueCat has no Supabase JWT
 ```
 
-The AI functions share `supabase/functions/_shared/` (the JSON helper and the
-allowance check), which the CLI uploads alongside each function.
+The AI functions share `supabase/functions/_shared/` (the JSON helper, the
+allowance check, the embedding call and the library helpers), which the CLI
+uploads alongside each function.
+
+A point-in-time copy of everything the house-book change touched, with a
+ready-to-run `rollback.sql`, is in `supabase/backups/20260819-pre-library/`
+(git tag `pre-library-20260819`).
 
 ---
 
@@ -232,6 +246,29 @@ allowance check), which the CLI uploads alongside each function.
   gets substituted; drop it and the function appends the list anyway rather than
   ask a model to guess. The table is deliberately unreadable to the app: only the
   edge function's service-role client sees it.
+- **The house book is shared and anonymous.** Every recipe `suggest-cocktails`
+  gets back from the model — including ones set aside for *this* bar — is kept
+  in `library_recipes` (+ `library_recipe_ingredients`), deduplicated by a
+  fingerprint of title and required ingredients, and embedded with
+  `text-embedding-3-small` (pgvector, 1536 dims). Who asked, and what they
+  typed, lives only in `library_asks`, which has RLS on and no policies: the
+  service role reads it, nobody else. The book is used three ways. *Answer
+  first:* the ask is embedded and compared with previous asks; a near-paraphrase
+  whose recipes you can make is returned without calling the model and without
+  spending an ask (the app shows it as "from the house book" with an *Ask the
+  Barkeep anyway* button). *Grounding:* when the model is called, the closest
+  recipes are handed to it under `{{LIBRARY}}` (prompt v3) as reference. *Discover:*
+  the *House book* screen browses and semantically searches it, with a
+  makeable-now filter and *Save to my recipes*. Thresholds are constants in
+  `supabase/functions/_shared/library.ts`, with the measurements that set them.
+  The library must never fail an answer: every library step is wrapped, and a
+  failure degrades to exactly the pre-library behaviour.
+- **Embeddings are priced but not metered.** Embedding calls are written to
+  `ai_usage` under `embed_query` / `embed_recipe` (priced from the
+  `text-embedding-3-small` row in `ai_models`, `is_allowed = false` so no prompt
+  can use it). Neither key has a `plan_limits` row, so they count against
+  nobody's allowance and never appear in the app's counters — an ask answered
+  from the book is free by design.
 - **The model is a row, but not a free one.** `ai_prompts.model` must reference
   an *allowed* row in `ai_models`, which carries the list price the model was
   costed at and the highest `max_output_tokens` a prompt may set for it. That
@@ -240,7 +277,7 @@ allowance check), which the CLI uploads alongside each function.
   the constraint that swing was one `UPDATE` away. To try a new model, insert
   its `ai_models` row (with prices) first; a model in use by an active prompt
   cannot be disallowed out from under it.
-- **Every model call is written down.** The four AI functions insert one
+- **Every model call is written down.** The AI functions insert one
   `ai_usage` row per call — who, which prompt, tokens in and out, and the
   cost, filled from `ai_models` by trigger. That is what the plan's monthly
   counters read, and what turns the projections behind the price list into

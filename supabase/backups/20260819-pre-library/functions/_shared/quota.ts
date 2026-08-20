@@ -17,15 +17,6 @@ import { json } from './http.ts';
 /** The `ai_prompts` / `plan_limits` key of the call site. */
 export type QuotaKey = 'suggest_cocktails' | 'identify_bottles' | 'read_recipe' | 'classify_bottle';
 
-/**
- * Everything that may appear in `ai_usage.key`: the metered call sites above,
- * plus the embedding calls the recipe library makes. Those have no
- * `plan_limits` row and never will — `check_ai_quota` treats an unknown key as
- * unmetered, and `my_plan()` ignores it — so they are priced and recorded but
- * cost nobody an ask.
- */
-export type UsageKey = QuotaKey | 'embed_query' | 'embed_recipe';
-
 export interface QuotaState {
   allowed: boolean;
   tier: 'free' | 'plus';
@@ -94,10 +85,9 @@ export async function recordUsage(
   admin: SupabaseClient,
   row: {
     userId: string;
-    key: UsageKey;
+    key: QuotaKey;
     model: string;
-    /** Null for calls that are not driven by an `ai_prompts` row (embeddings). */
-    promptVersion: number | null;
+    promptVersion: number;
     usage: TokenUsage | null | undefined;
     status: 'ok' | 'refused' | 'incomplete';
   },

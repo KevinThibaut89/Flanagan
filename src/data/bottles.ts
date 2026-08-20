@@ -67,8 +67,10 @@ function useInvalidateInventory() {
 
   return () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.bottles(user?.id) });
-    // Availability changes ripple into which recipes are makeable.
+    // Availability changes ripple into which recipes are makeable — in the
+    // notebook and in the shared library.
     void queryClient.invalidateQueries({ queryKey: queryKeys.makeableRecipeIds(user?.id) });
+    void queryClient.invalidateQueries({ queryKey: ['library'] });
   };
 }
 

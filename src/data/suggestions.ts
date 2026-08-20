@@ -8,31 +8,60 @@ import type { RecipeWithIngredients } from './recipes';
 /** A draft straight from the model, plus its one-line justification. */
 export interface SuggestedRecipe extends RecipeDraft {
   rationale: string;
+  /**
+   * The house-book row behind this suggestion — what a thumb up/down attaches
+   * to. Null when the library write failed (or from an older deployment of the
+   * function); the thumbs are simply hidden then.
+   */
+  library_recipe_id: string | null;
 }
 
 export interface SuggestionResponse {
   recipes: SuggestedRecipe[];
   /** How many suggestions were dropped for needing something not in stock. */
   rejected: number;
+  /**
+   * True when the answer came from the shared library — recipes the Barkeep
+   * has served before for a near-identical ask — without calling the model or
+   * spending one of the month's asks.
+   */
+  from_library: boolean;
   message: string | null;
+}
+
+export interface SuggestionRequest {
+  query: string;
+  /** Skip the library shortcut and ask the model — "Ask the Barkeep anyway". */
+  forceAi?: boolean;
 }
 
 export function useSuggestCocktails() {
   const invalidatePlan = useInvalidatePlan();
   return useMutation({
-    mutationFn: async (query: string): Promise<SuggestionResponse> => {
+    mutationFn: async ({ query, forceAi = false }: SuggestionRequest): Promise<SuggestionResponse> => {
       const { data, error } = await supabase.functions.invoke<SuggestionResponse>(
         'suggest-cocktails',
-        { body: { query } },
+        { body: { query, force_ai: forceAi } },
       );
 
       // A 402 is not a failure of the service; it is the month's allowance,
       // and the screen offers Plus rather than an error line.
       if (error) throw await asQuotaError(error);
       if (!data) throw new Error('The suggestion service returned nothing.');
-      return data;
+      // Older deployments of the function do not send the flag or the library
+      // ids; read them as "no" and "none".
+      return {
+        ...data,
+        from_library: data.from_library === true,
+        recipes: (data.recipes ?? []).map((recipe) => ({
+          ...recipe,
+          library_recipe_id: recipe.library_recipe_id ?? null,
+        })),
+      };
     },
-    // Every answer costs an ask; the "N left" line should move straight away.
+    // A model answer costs an ask; the "N left" line should move straight away.
+    // (A library answer does not, and invalidating is still the cheap, honest
+    // thing to do.)
     onSettled: () => void invalidatePlan(),
   });
 }
@@ -68,6 +97,7 @@ export function draftToPreview(draft: SuggestedRecipe, index: number): RecipeWit
     image_url: null,
     ai_prompt: draft.ai_prompt ?? null,
     ai_model: draft.ai_model ?? null,
+    library_recipe_id: draft.library_recipe_id ?? null,
     created_at: now,
     updated_at: now,
     recipe_ingredients: draft.ingredients.map((line, position) => ({

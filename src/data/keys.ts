@@ -14,5 +14,14 @@ export const queryKeys = {
   recipe: (id: string) => ['recipe', id] as const,
   makeableRecipeIds: (userId?: string) => ['makeable-recipes', userId] as const,
 
+  // All under one prefix so a change to the bar can invalidate every library
+  // view at once — makeability is computed per caller.
+  libraryBrowse: (userId?: string, params?: { makeable: boolean; sort: 'newest' | 'popular' }) =>
+    ['library', 'browse', userId, params] as const,
+  librarySearch: (userId?: string, query?: string, makeable?: boolean) =>
+    ['library', 'search', userId, query, makeable] as const,
+  libraryRecipe: (userId?: string, id?: string) => ['library', 'recipe', userId, id] as const,
+  libraryFeedback: (userId?: string) => ['library', 'feedback', userId] as const,
+
   productByBarcode: (barcode: string) => ['product', barcode] as const,
 };
