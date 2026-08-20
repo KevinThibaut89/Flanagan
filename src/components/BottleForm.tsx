@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from './Button';
@@ -9,7 +9,7 @@ import { Body, Label, Muted } from './ui';
 import { ML_PER_OZ } from '../lib/units';
 import { useUnits } from '../providers/preferences';
 import { useThemedStyles } from '../providers/theme';
-import { spacing, type Theme } from '../theme';
+import { radius, spacing, type Theme } from '../theme';
 import type { BottleKind, BottleStatus } from '../types/database';
 
 export interface BottleFormValues {
@@ -60,26 +60,29 @@ const METRIC_SIZES = [200, 350, 500, 700, 750, 1000];
 /** Fifth, quart, pint, half-pint, litre — the sizes an imperial shelf actually has. */
 const IMPERIAL_SIZES = [200, 375, 500, 750, 1000, 1750];
 
-export function BottleForm({
-  values,
-  onChange,
-  onSubmit,
-  submitLabel,
-  busy = false,
-  error,
-  footer,
-  ingredientGuessed = false,
-}: {
-  values: BottleFormValues;
-  onChange: (values: BottleFormValues) => void;
-  onSubmit: () => void;
-  submitLabel: string;
-  busy?: boolean;
-  error?: string | null;
-  footer?: React.ReactNode;
-  /** The current ingredient was guessed from the name, not chosen by the user. */
-  ingredientGuessed?: boolean;
-}) {
+/** Lets a button living outside the form (e.g. in the screen header) submit it. */
+export interface BottleFormHandle {
+  submit: () => void;
+}
+
+export const BottleForm = forwardRef<
+  BottleFormHandle,
+  {
+    values: BottleFormValues;
+    onChange: (values: BottleFormValues) => void;
+    onSubmit: () => void;
+    /** Omit to render no inline submit button — the screen provides one instead. */
+    submitLabel?: string;
+    busy?: boolean;
+    error?: string | null;
+    footer?: React.ReactNode;
+    /** The current ingredient was guessed from the name, not chosen by the user. */
+    ingredientGuessed?: boolean;
+  }
+>(function BottleForm(
+  { values, onChange, onSubmit, submitLabel, busy = false, error, footer, ingredientGuessed = false },
+  ref,
+) {
   const styles = useThemedStyles(makeStyles);
   const units = useUnits();
   const [touched, setTouched] = useState(false);
@@ -96,6 +99,8 @@ export function BottleForm({
     onSubmit();
   }
 
+  useImperativeHandle(ref, () => ({ submit: handleSubmit }));
+
   const sizes = units === 'imperial' ? IMPERIAL_SIZES : METRIC_SIZES;
 
   return (
@@ -103,6 +108,12 @@ export function BottleForm({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.flex}
     >
+      {/* Pinned above the scroll so a failed save is visible from anywhere in the form. */}
+      {error ? (
+        <View style={styles.errorBanner}>
+          <Body style={styles.errorText}>{error}</Body>
+        </View>
+      ) : null}
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <TextField
           label="Name"
@@ -215,14 +226,12 @@ export function BottleForm({
           style={styles.notes}
         />
 
-        {error ? <Body style={styles.error}>{error}</Body> : null}
-
-        <Button label={submitLabel} onPress={handleSubmit} loading={busy} />
+        {submitLabel ? <Button label={submitLabel} onPress={handleSubmit} loading={busy} /> : null}
         {footer}
       </ScrollView>
     </KeyboardAvoidingView>
   );
-}
+});
 
 /** Turns form strings into the nullable numbers the database expects. */
 export function parseOptionalNumber(value: string): number | null {
@@ -262,7 +271,18 @@ const makeStyles = ({ colors }: Theme) =>
     minHeight: 90,
     textAlignVertical: 'top',
   },
-  error: {
+  errorBanner: {
+    marginHorizontal: spacing.gutter,
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    backgroundColor: `${colors.danger}1A`,
+  },
+  errorText: {
     color: colors.danger,
+    fontSize: 13,
   },
   });

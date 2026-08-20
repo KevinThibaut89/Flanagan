@@ -5,8 +5,10 @@ import {
   BottleForm,
   emptyBottleForm,
   parseOptionalNumber,
+  type BottleFormHandle,
   type BottleFormValues,
 } from '../../src/components/BottleForm';
+import { Button } from '../../src/components/Button';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { Screen } from '../../src/components/ui';
 import { useAddBottle } from '../../src/data/bottles';
@@ -45,6 +47,7 @@ export default function NewBottleScreen() {
 
   const addBottle = useAddBottle();
   const classify = useClassifyBottle();
+  const formRef = useRef<BottleFormHandle>(null);
 
   // The id the classifier filled in, so the form can flag it as a guess. Cleared
   // the moment the field no longer holds that exact value — a user's own pick,
@@ -126,14 +129,22 @@ export default function NewBottleScreen() {
       <ScreenHeader
         title="Add a bottle"
         subtitle={params.productId ? 'Found from the barcode — check the details' : undefined}
+        action={
+          // Up here so it's reachable without scrolling past the whole form.
+          <Button
+            label="Add to my bar"
+            size="sm"
+            onPress={() => formRef.current?.submit()}
+            loading={addBottle.isPending}
+          />
+        }
       />
       <BottleForm
+        ref={formRef}
         values={values}
         onChange={setValues}
         ingredientGuessed={values.ingredientId !== null && values.ingredientId === guessedId}
         onSubmit={handleSubmit}
-        submitLabel="Add to my bar"
-        busy={addBottle.isPending}
         error={addBottle.error instanceof Error ? addBottle.error.message : null}
       />
     </Screen>
