@@ -54,16 +54,6 @@ export const LIBRARY_SEARCH_COUNT = 10;
 export const LIBRARY_DISCOVER_MIN_SIMILARITY = 0.25;
 export const LIBRARY_DISCOVER_MAX = 30;
 
-/**
- * Variety: a drink served to this person inside this window is excluded from
- * the answer-first shortcut (the ask then falls through to the model — the
- * accepted price of not pouring the same thing twice in a fortnight) and
- * listed in the prompt's {{RECENT}} block as a soft steer.
- */
-export const LIBRARY_RECENT_DAYS = 14;
-/** At most this many drinks in the {{RECENT}} block. */
-export const LIBRARY_RECENT_MAX = 12;
-
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
 /** One line of `library_recipe_ingredients`, as `to_jsonb()` renders it. */
@@ -192,14 +182,11 @@ function oneLine(text: string, max: number): string {
  * The `{{LIBRARY}}` block: one sanitised line per recipe, ingredient slugs
  * (the model must answer in slugs), bracketed so the prompt can say where the
  * data starts and stops. `slugOf` resolves an ingredient id to its slug; lines
- * with no slug are rendered from their free text. `recentAt` (recipe id →
- * last_served_at) marks drinks this person just had, so prompt v5's §10 can
- * steer away from them; omitted, the block reads exactly as before.
+ * with no slug are rendered from their free text.
  */
 export function formatLibraryBlock(
   hits: LibraryRow[],
   slugOf: (ingredientId: string) => string | null,
-  recentAt?: Map<string, string>,
 ): string {
   if (hits.length === 0) return 'LIBRARY:\n(nothing similar on file yet)\nEND LIBRARY';
 
@@ -224,10 +211,7 @@ export function formatLibraryBlock(
       .map((tag) => oneLine(tag, 20))
       .join(', ');
     const garnish = hit.garnish ? `; garnish: ${oneLine(hit.garnish, 60)}` : '';
-    const servedAt = recentAt?.get(hit.id);
-    const asked = servedAt
-      ? `asked ${hit.times_suggested}×; served to them ${daysAgoLabel(servedAt)}`
-      : `asked ${hit.times_suggested}×`;
+    const asked = `asked ${hit.times_suggested}×`;
     const head = [build, asked].filter(Boolean).join('; ');
     return `- ${oneLine(hit.title, 60)} (${head}${tags ? `; ${tags}` : ''}): ${spec}${garnish}`;
   });
@@ -264,37 +248,6 @@ export function formatTasteBlock(profile: TasteProfile | null): string {
   ].filter(Boolean) as string[];
 
   return ['TASTE:', ...lines, 'END TASTE'].join('\n');
-}
-
-/** A row from `library_recent(p_user_id)`. */
-export interface RecentServing {
-  recipe_id: string;
-  title: string;
-  last_served_at: string;
-  times_served: number;
-}
-
-/** "today", "yesterday", "5 days ago" — whole days, floored. */
-function daysAgoLabel(iso: string): string {
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (!Number.isFinite(days) || days < 1) return 'today';
-  return days === 1 ? 'yesterday' : `${days} days ago`;
-}
-
-/**
- * The `{{RECENT}}` block: what this drinker was served lately, sanitised and
- * bracketed like `{{TASTE}}`. Prompt v5's §12 reads it as a soft steer toward
- * variety; an empty list renders as "(nothing served recently)" so a fresh
- * drinker's prompt stays byte-for-byte boring.
- */
-export function formatRecentBlock(rows: RecentServing[]): string {
-  if (rows.length === 0) return 'RECENT:\n(nothing served recently)\nEND RECENT';
-
-  const lines = rows.map(
-    (row) => `- ${oneLine(row.title, 60)} — ${daysAgoLabel(row.last_served_at)}`,
-  );
-
-  return ['RECENT:', ...lines, 'END RECENT'].join('\n');
 }
 
 // ── For the app ─────────────────────────────────────────────────────────────

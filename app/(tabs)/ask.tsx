@@ -215,14 +215,15 @@ export default function AskScreen() {
                 </Muted>
               ) : null}
 
-              {result.from_library ? (
-                <Button
-                  label="Ask the Barkeep anyway"
-                  variant="secondary"
-                  onPress={() => ask(query, { forceAi: true })}
-                  loading={suggest.isPending}
-                />
-              ) : null}
+              {/* Both labels force a fresh model answer; the just-served
+                  drinks are on the RECENT list by now, so the Barkeep is
+                  steered toward pouring something else. */}
+              <Button
+                label={result.from_library ? 'Ask the Barkeep anyway' : 'Pour me something different'}
+                variant="secondary"
+                onPress={() => ask(query, { forceAi: true })}
+                loading={suggest.isPending}
+              />
 
               <Button
                 label="See my recipes"

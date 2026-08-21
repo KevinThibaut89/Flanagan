@@ -10,16 +10,11 @@ import {
   LIBRARY_ANSWER_MIN_HITS,
   LIBRARY_RAG_MIN_SIMILARITY,
   LIBRARY_RAG_TOP_K,
-  LIBRARY_RECENT_DAYS,
-  LIBRARY_RECENT_MAX,
   LIBRARY_SEARCH_COUNT,
-  foldText,
   formatLibraryBlock,
-  formatRecentBlock,
   formatTasteBlock,
   libraryRowToDraft,
   type LibraryRow,
-  type RecentServing,
   type TasteProfile,
 } from '../_shared/library.ts';
 import { checkQuota, recordUsage } from '../_shared/quota.ts';
@@ -207,9 +202,6 @@ Deno.serve(async (request: Request) => {
   // Their taste, for the prompt. The ranking side of taste (downvotes
   // excluded, likes nudged up) lives inside the two RPCs themselves.
   let taste: TasteProfile | null = null;
-  // What they were served lately: excluded from the shortcut (via
-  // p_exclude_recent_days), a soft steer in the prompt ({{RECENT}}).
-  let recent: RecentServing[] = [];
   try {
     [queryEmbedding] = await embedTexts(openai, admin, {
       userId: user.id,
@@ -217,7 +209,7 @@ Deno.serve(async (request: Request) => {
       texts: [query],
     });
 
-    const [answered, searched, tasted, served] = await Promise.all([
+    const [answered, searched, tasted] = await Promise.all([
       forceAi
         ? Promise.resolve({ data: [], error: null })
         : admin.rpc('library_answer', {
@@ -225,10 +217,6 @@ Deno.serve(async (request: Request) => {
             p_embedding: queryEmbedding,
             p_count: LIBRARY_ANSWER_MAX,
             p_min_similarity: LIBRARY_ANSWER_MIN_ASK_SIMILARITY,
-            // Not the same drink twice in a fortnight: recently served rows
-            // are skipped here, and the ask falls through to the model when
-            // nothing non-recent is left. Variety costs an occasional ask.
-            p_exclude_recent_days: LIBRARY_RECENT_DAYS,
           }),
       admin.rpc('library_search', {
         p_user_id: user.id,
@@ -238,11 +226,6 @@ Deno.serve(async (request: Request) => {
         p_only_makeable: false,
       }),
       admin.rpc('library_taste_profile', { p_user_id: user.id }),
-      admin.rpc('library_recent', {
-        p_user_id: user.id,
-        p_days: LIBRARY_RECENT_DAYS,
-        p_max: LIBRARY_RECENT_MAX,
-      }),
     ]);
     if (answered.error) throw answered.error;
     if (searched.error) throw searched.error;
@@ -251,9 +234,6 @@ Deno.serve(async (request: Request) => {
     // A failed profile must not take the library lists down with it.
     if (tasted.error) console.warn('Taste profile failed; prompting without it', tasted.error);
     else taste = (tasted.data ?? null) as TasteProfile | null;
-    // Same rule for recency: without it the Barkeep just repeats itself a bit.
-    if (served.error) console.warn('Recent servings failed; prompting without them', served.error);
-    else recent = (served.data ?? []) as RecentServing[];
 
     const show = (rows: LibraryRow[]) =>
       rows
@@ -269,18 +249,6 @@ Deno.serve(async (request: Request) => {
     answers = [];
   }
 
-  // The same drink under a different fingerprint ("Negroni" with gin vs with
-  // london-dry-gin) slips past the id-based recency exclusion. Titles catch
-  // it: a folded recent title is out, unless the request names that drink.
-  const recentTitles = new Set(recent.map((row) => foldText(row.title)));
-  const foldedQuery = foldText(query);
-  const notJustServed = (title: string) => {
-    const folded = foldText(title);
-    return !recentTitles.has(folded) || foldedQuery.includes(folded);
-  };
-
-  answers = answers.filter((row) => notJustServed(row.title));
-
   // Answer first from the library: enough recipes from close-enough past asks
   // that this person can pour tonight, or one from an ask that was essentially
   // the same words. No tokens, no ask spent.
@@ -288,19 +256,6 @@ Deno.serve(async (request: Request) => {
   if (answers.length >= LIBRARY_ANSWER_MIN_HITS || exact.length >= 1) {
     const chosen = answers.length >= LIBRARY_ANSWER_MIN_HITS ? answers : exact;
     console.log(`suggest-cocktails: answered from library (${chosen.length} recipes)`);
-    // Leave a trace, so recency sees these servings too (the AI path gets the
-    // same rows from library_upsert). Failure must not cost the answer.
-    try {
-      const { error: servingError } = await admin.rpc('library_record_serving', {
-        p_user_id: user.id,
-        p_query: query,
-        p_recipe_ids: chosen.map((row) => row.id),
-        p_query_embedding: queryEmbedding,
-      });
-      if (servingError) throw servingError;
-    } catch (cause) {
-      console.warn('Recording library serving failed; answer unaffected', cause);
-    }
     return json({
       recipes: chosen.map((row) => libraryRowToDraft(row, query)),
       rejected: 0,
@@ -347,7 +302,6 @@ Deno.serve(async (request: Request) => {
   const libraryBlock = formatLibraryBlock(
     hits.slice(0, LIBRARY_RAG_TOP_K),
     (id) => byId.get(id)?.slug ?? null,
-    new Map(recent.map((row) => [row.recipe_id, row.last_served_at])),
   );
   if (system.includes('{{LIBRARY}}')) {
     system = system.replaceAll('{{LIBRARY}}', libraryBlock);
@@ -361,14 +315,6 @@ Deno.serve(async (request: Request) => {
     system = system.replaceAll('{{TASTE}}', formatTasteBlock(taste));
   } else {
     console.log(`ai_prompts "${PROMPT_KEY}" v${config.version} has no {{TASTE}} placeholder; not personalising.`);
-  }
-
-  // Recency is the same kind of optional grounding again: a prompt without
-  // the placeholder simply repeats itself the way it always did.
-  if (system.includes('{{RECENT}}')) {
-    system = system.replaceAll('{{RECENT}}', formatRecentBlock(recent));
-  } else {
-    console.log(`ai_prompts "${PROMPT_KEY}" v${config.version} has no {{RECENT}} placeholder; not varying.`);
   }
 
   let response;
@@ -560,20 +506,6 @@ Deno.serve(async (request: Request) => {
     }
   } catch (cause) {
     console.warn('Downvote check failed; answer unaffected', cause);
-  }
-
-  // The prompt's RECENT steer is soft and the model still occasionally
-  // re-serves a just-poured drink under a fresh fingerprint. Enforce it here,
-  // by title — but never at the price of an empty glass: when every keepable
-  // suggestion is a repeat, repeats beat nothing.
-  const varied = accepted.filter((recipe) => notJustServed(recipe.title));
-  if (varied.length > 0 && varied.length < accepted.length) {
-    for (const recipe of accepted) {
-      if (!varied.includes(recipe)) {
-        console.log(`Dropped "${recipe.title}": served to them recently`);
-      }
-    }
-    accepted = varied;
   }
 
   return json({
